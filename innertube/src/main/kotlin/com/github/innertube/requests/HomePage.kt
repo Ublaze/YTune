@@ -100,6 +100,8 @@ private fun parseTwoRowItem(renderer: MusicTwoRowItemRenderer): HomeItem? {
                                 thumbnail = renderer.thumbnailRenderer
                                     ?.musicThumbnailRenderer
                                     ?.thumbnail
+                                    ?.thumbnails
+                                    ?.firstOrNull()
                             )
                         )
                     } else {
@@ -114,6 +116,8 @@ private fun parseTwoRowItem(renderer: MusicTwoRowItemRenderer): HomeItem? {
                                 thumbnail = renderer.thumbnailRenderer
                                     ?.musicThumbnailRenderer
                                     ?.thumbnail
+                                    ?.thumbnails
+                                    ?.firstOrNull()
                             )
                         )
                     }
@@ -153,6 +157,8 @@ private fun parseTwoRowItem(renderer: MusicTwoRowItemRenderer): HomeItem? {
                     thumbnail = renderer.thumbnailRenderer
                         ?.musicThumbnailRenderer
                         ?.thumbnail
+                        ?.thumbnails
+                        ?.firstOrNull()
                 )
             )
         }
