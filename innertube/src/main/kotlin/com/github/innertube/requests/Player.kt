@@ -15,16 +15,12 @@ import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
 
 suspend fun Innertube.player(videoId: String) = runCatchingNonCancellable {
-    val playerClient = if (isLoggedIn) {
-        YouTubeClient.WEB_REMIX
-    } else {
-        YouTubeClient.ANDROID_VR
-    }
-
-    val response = client.post(PLAYER) {
+    // Use playerClient (anonymous, no cookie/auth headers) — ANDROID_VR
+    // returns direct streaming URLs but rejects cookie-based auth.
+    val response = playerClient.post(PLAYER) {
         setBody(
             PlayerBody(
-                context = playerClient.toContext(visitorData = visitorData),
+                context = YouTubeClient.ANDROID_VR.toContext(visitorData = visitorData),
                 videoId = videoId
             )
         )
@@ -44,7 +40,7 @@ suspend fun Innertube.player(videoId: String) = runCatchingNonCancellable {
             val audioStreams: List<AudioStream>
         )
 
-        val safePlayerResponse = client.post(PLAYER) {
+        val safePlayerResponse = playerClient.post(PLAYER) {
             setBody(
                 PlayerBody(
                     context = YouTubeClient.TVHTML5_SIMPLY_EMBEDDED_PLAYER.toContext().copy(
@@ -62,7 +58,7 @@ suspend fun Innertube.player(videoId: String) = runCatchingNonCancellable {
             return@runCatchingNonCancellable response
         }
 
-        val audioStreams = client.get("https://pipedapi.adminforge.de/streams/$videoId") {
+        val audioStreams = playerClient.get("https://pipedapi.adminforge.de/streams/$videoId") {
             contentType(ContentType.Application.Json)
         }.body<PipedResponse>().audioStreams
 

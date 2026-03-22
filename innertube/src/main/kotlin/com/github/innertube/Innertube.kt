@@ -41,15 +41,17 @@ object Innertube {
         return "SAPISIDHASH ${timestamp}_$hash"
     }
 
+    private val jsonConfig = Json {
+        ignoreUnknownKeys = true
+        explicitNulls = false
+        encodeDefaults = true
+    }
+
     val client = HttpClient(OkHttp) {
         expectSuccess = true
 
         install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-                explicitNulls = false
-                encodeDefaults = true
-            })
+            json(jsonConfig)
         }
 
         install(ContentEncoding) {
@@ -70,6 +72,29 @@ object Innertube {
             } else {
                 header("X-Goog-Api-Key", "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8")
             }
+        }
+    }
+
+    // Separate client for player requests — never sends auth headers.
+    // ANDROID_VR returns direct streaming URLs but rejects cookie auth.
+    // Also prevents leaking YouTube cookies to external APIs (Piped).
+    internal val playerClient = HttpClient(OkHttp) {
+        expectSuccess = true
+
+        install(ContentNegotiation) {
+            json(jsonConfig)
+        }
+
+        install(ContentEncoding) {
+            brotli()
+        }
+
+        defaultRequest {
+            url(scheme = "https", host = "music.youtube.com") {
+                contentType(ContentType.Application.Json)
+                parameters.append("prettyPrint", "false")
+            }
+            header("X-Goog-Api-Key", "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8")
         }
     }
 
