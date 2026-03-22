@@ -115,7 +115,7 @@ fun About() {
                 )
             },
             modifier = Modifier.clickable {
-                uriHandler.openUri("https://github.com/DanielSevillano/music-you")
+                uriHandler.openUri("https://github.com/Ublaze/YTune")
             }
         )
     }
@@ -178,7 +178,7 @@ fun About() {
 
                         FilledTonalButton(
                             onClick = {
-                                uriHandler.openUri("https://github.com/DanielSevillano/music-you/releases/latest")
+                                uriHandler.openUri("https://github.com/Ublaze/YTune/releases/latest")
                             }
                         ) {
                             Icon(

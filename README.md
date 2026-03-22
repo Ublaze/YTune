@@ -1,11 +1,10 @@
-# Music You
+# YTune
 
-An Android application for streaming music from YouTube Music.
+An Android application for streaming music from YouTube Music, with Google account sign-in and personal playlist sync.
 
-![Repository preview](./screenshots/repository_preview.jpg)
+## Features
 
-## ✨ Features
-
+- **Google Sign-In** — Access your YouTube Music playlists and library
 - Background playback
 - Cache songs for offline playback
 - Search for songs, albums, artists, videos and playlists
@@ -15,50 +14,36 @@ An Android application for streaming music from YouTube Music.
 - Open YouTube and YouTube Music links by default
 - Player features, such as sleep timer and persistent queue
 - Audio features, such as skip silence and audio normalization
-- Other features, such as Android Auto support and invincible service
-
-### 🗒️ New features
-
-- Material You redesign
+- Material You redesign with dynamic colors
 - Multilingual support
-- Quick picks selection customization
 - Swipe to enqueue and delete songs
+- Android Auto support
 
-## 🌐 Available languages
+## Available languages
 
 - English
 - Spanish
-- German ([@siggi1984](https://github.com/siggi1984))
-- French ([@patxixi](https://github.com/patxixi) and [@Mickael81](https://github.com/Mickael81))
-- Italian ([@F3FFO](https://github.com/F3FFO))
+- German
+- French
+- Italian
 
-## 📸 Screenshots
+## Installation
 
-<div>
-    <img src="./screenshots/screenshot_player.png" alt="Player" style="width: 30%;">
-    <img src="./screenshots/screenshot_home.png" alt="Home" style="width: 30%;">
-    <img src="./screenshots/screenshot_artist.png" alt="Artist" style="width: 30%;">
-    <img src="./screenshots/screenshot_songs.png" alt="Songs" style="width: 30%;">
-    <img src="./screenshots/screenshot_artists.png" alt="Artists" style="width: 30%;">
-    <img src="./screenshots/screenshot_albums.png" alt="Albums" style="width: 30%;">
-</div>
+Download the latest APK from the [Releases](../../releases/latest) page.
 
-## 📲 Installation
+## Built with
 
-[<img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png"
-alt="Get it on GitHub"
-height="80">](https://github.com/DanielSevillano/music-you/releases/latest)
+- Kotlin + Jetpack Compose
+- Material Design 3
+- ExoPlayer (Media3)
+- Room Database
+- Ktor HTTP Client
 
-## 🌟 Inspiration
+## Inspiration
 
-- [ViMusic](https://github.com/vfsfitvnm/ViMusic)
-- [RiMusic](https://github.com/fast4x/RiMusic)
-- [ViTune](https://github.com/25huizengek1/ViTune)
-- [InnerTune](https://github.com/z-huang/InnerTune)
-- [OuterTune](https://github.com/OuterTune/OuterTune)
-- [Symphony](https://github.com/zyrouge/symphony)
+This project was inspired by and built upon ideas from various open-source YouTube Music clients in the Android community.
 
-## ℹ️ Disclaimer
+## Disclaimer
 
 This project and its contents are not affiliated with, funded, authorized, endorsed by, or in any
 way associated with YouTube, Google LLC or any of its affiliates and subsidiaries.

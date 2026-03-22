@@ -17,6 +17,10 @@ import com.github.innertube.models.Thumbnail
 import kotlinx.serialization.json.Json
 
 object Innertube {
+    var cookie: String? = null
+
+    val isLoggedIn: Boolean get() = !cookie.isNullOrBlank()
+
     val client = HttpClient(OkHttp) {
         expectSuccess = true
 
@@ -38,10 +42,13 @@ object Innertube {
                 headers.append("X-Goog-Api-Key", "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8")
                 parameters.append("prettyPrint", "false")
             }
+            cookie?.let { header("Cookie", it) }
         }
     }
 
     var visitorData: String? = null
+
+    internal const val ACCOUNT_MENU = "/youtubei/v1/account/account_menu"
 
     internal const val BROWSE = "/youtubei/v1/browse"
     internal const val NEXT = "/youtubei/v1/next"

@@ -89,6 +89,7 @@ dependencies {
     implementation(libs.reorderable)
     implementation(libs.room)
     implementation(libs.swipe)
+    implementation("androidx.webkit:webkit:1.13.0")
     ksp(libs.room.compiler)
     implementation(projects.github)
     implementation(projects.innertube)

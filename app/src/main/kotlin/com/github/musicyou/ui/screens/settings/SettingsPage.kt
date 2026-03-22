@@ -22,7 +22,8 @@ import com.github.musicyou.enums.SettingsSection
 @Composable
 fun SettingsPage(
     section: SettingsSection,
-    pop: () -> Unit
+    pop: () -> Unit,
+    onLoginClick: () -> Unit = {}
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
@@ -47,6 +48,7 @@ fun SettingsPage(
     ) { paddingValues ->
         Surface(modifier = Modifier.padding(top = paddingValues.calculateTopPadding())) {
             when (section) {
+                SettingsSection.Account -> AccountSettings(onLoginClick = onLoginClick)
                 SettingsSection.General -> GeneralSettings()
                 SettingsSection.Player -> PlayerSettings()
                 SettingsSection.Gestures -> GestureSettings()

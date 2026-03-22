@@ -3,6 +3,7 @@ package com.github.musicyou.enums
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.More
+import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Gesture
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
@@ -16,6 +17,10 @@ enum class SettingsSection(
     @StringRes val resourceId: Int,
     val icon: ImageVector
 ) {
+    Account(
+        resourceId = R.string.account,
+        icon = Icons.Outlined.AccountCircle
+    ),
     General(
         resourceId = R.string.general,
         Icons.Outlined.Tune

@@ -5,6 +5,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -13,16 +14,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DownloadForOffline
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.innertube.Innertube
+import com.github.innertube.requests.libraryPlaylists
 import com.github.musicyou.LocalPlayerPadding
 import com.github.musicyou.R
 import com.github.musicyou.database
@@ -35,6 +41,7 @@ import com.github.musicyou.ui.components.SortingHeader
 import com.github.musicyou.ui.components.TextFieldDialog
 import com.github.musicyou.ui.items.BuiltInPlaylistItem
 import com.github.musicyou.ui.items.LocalPlaylistItem
+import com.github.musicyou.ui.items.PlaylistItem
 import com.github.musicyou.utils.playlistSortByKey
 import com.github.musicyou.utils.playlistSortOrderKey
 import com.github.musicyou.utils.rememberPreference
@@ -47,13 +54,16 @@ fun HomePlaylists(
     openSearch: () -> Unit,
     openSettings: () -> Unit,
     onBuiltInPlaylist: (Int) -> Unit,
-    onPlaylistClick: (Playlist) -> Unit
+    onPlaylistClick: (Playlist) -> Unit,
+    onYtmPlaylistClick: (String) -> Unit = {}
 ) {
     val playerPadding = LocalPlayerPadding.current
 
     var isCreatingANewPlaylist by rememberSaveable { mutableStateOf(false) }
     var sortBy by rememberPreference(playlistSortByKey, PlaylistSortBy.Name)
     var sortOrder by rememberPreference(playlistSortOrderKey, SortOrder.Ascending)
+
+    var ytmPlaylists by remember { mutableStateOf<List<Innertube.PlaylistItem>>(emptyList()) }
 
     val viewModel: HomePlaylistsViewModel = viewModel()
 
@@ -62,6 +72,16 @@ fun HomePlaylists(
             sortBy = sortBy,
             sortOrder = sortOrder
         )
+    }
+
+    LaunchedEffect(Innertube.isLoggedIn) {
+        if (Innertube.isLoggedIn) {
+            Innertube.libraryPlaylists()?.getOrNull()?.let {
+                ytmPlaylists = it
+            }
+        } else {
+            ytmPlaylists = emptyList()
+        }
     }
 
     if (isCreatingANewPlaylist) {
@@ -131,6 +151,38 @@ fun HomePlaylists(
                     name = stringResource(id = R.string.new_playlist),
                     onClick = { isCreatingANewPlaylist = true }
                 )
+            }
+
+            if (ytmPlaylists.isNotEmpty()) {
+                item(
+                    key = "ytm_header",
+                    span = { GridItemSpan(maxLineSpan) }
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.youtube_music_playlists),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(
+                            start = 8.dp,
+                            top = 16.dp,
+                            bottom = 8.dp
+                        )
+                    )
+                }
+
+                items(
+                    items = ytmPlaylists,
+                    key = { "ytm_${it.key}" }
+                ) { playlist ->
+                    PlaylistItem(
+                        modifier = Modifier.animateItem(),
+                        playlist = playlist,
+                        onClick = {
+                            playlist.info?.endpoint?.browseId?.let { browseId ->
+                                onYtmPlaylistClick(browseId)
+                            }
+                        }
+                    )
+                }
             }
 
             items(

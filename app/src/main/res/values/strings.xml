@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">Music You</string>
+    <string name="app_name" translatable="false">YTune</string>
     <string name="home">Home</string>
     <string name="songs">Songs</string>
     <string name="playlists">Playlists</string>
@@ -195,4 +195,11 @@
     <string name="featured_on">Featured on</string>
     <string name="fans_might_also_like">Fans might also like</string>
     <string name="no_related_albums">No related albums were found</string>
+    <string name="account">Account</string>
+    <string name="sign_in">Sign in</string>
+    <string name="sign_out">Sign out</string>
+    <string name="not_signed_in">Not signed in</string>
+    <string name="sign_in_description">Sign in to your Google account to access your YouTube Music playlists and library.</string>
+    <string name="signed_in_description">Your YouTube Music playlists are now available in the Playlists tab.</string>
+    <string name="youtube_music_playlists">YouTube Music</string>
 </resources>

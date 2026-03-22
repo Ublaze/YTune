@@ -27,13 +27,23 @@ import com.github.musicyou.ui.screens.home.HomePlaylists
 import com.github.musicyou.ui.screens.home.HomeSongs
 import com.github.musicyou.ui.screens.home.QuickPicks
 import com.github.musicyou.ui.screens.localplaylist.LocalPlaylistScreen
+import com.github.musicyou.ui.screens.login.LoginScreen
 import com.github.musicyou.ui.screens.playlist.PlaylistScreen
 import com.github.musicyou.ui.screens.search.SearchScreen
 import com.github.musicyou.ui.screens.settings.SettingsPage
 import com.github.musicyou.ui.screens.settings.SettingsScreen
+import com.github.innertube.Innertube
+import com.github.innertube.requests.accountInfo
 import com.github.musicyou.utils.homeScreenTabIndexKey
+import com.github.musicyou.utils.preferences
 import com.github.musicyou.utils.rememberPreference
+import com.github.musicyou.utils.ytmAccountEmailKey
+import com.github.musicyou.utils.ytmAccountNameKey
+import com.github.musicyou.utils.ytmCookieKey
+import androidx.core.content.edit
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import soup.compose.material.motion.animation.rememberSlideDistance
 import kotlin.reflect.KClass
 
@@ -166,6 +176,9 @@ fun Navigation(
                 },
                 onPlaylistClick = { playlist ->
                     navController.navigate(route = Routes.LocalPlaylist(id = playlist.id))
+                },
+                onYtmPlaylistClick = { browseId ->
+                    navController.navigate(route = Routes.Playlist(id = browseId))
                 }
             )
         }
@@ -220,7 +233,10 @@ fun Navigation(
 
             SettingsPage(
                 section = SettingsSection.entries[route.index],
-                pop = popDestination
+                pop = popDestination,
+                onLoginClick = {
+                    navController.navigate(route = Routes.Login)
+                }
             )
         }
 
@@ -262,6 +278,30 @@ fun Navigation(
                 pop = popDestination,
                 onGoToAlbum = navigateToAlbum,
                 onGoToArtist = navigateToArtist
+            )
+        }
+
+        playerComposable(route = Routes.Login::class) {
+            val context = navController.context
+            LoginScreen(
+                pop = popDestination,
+                onLoginSuccess = { cookies ->
+                    Innertube.cookie = cookies
+                    context.preferences.edit {
+                        putString(ytmCookieKey, cookies)
+                    }
+                    scope.launch {
+                        withContext(Dispatchers.IO) {
+                            Innertube.accountInfo()?.getOrNull()?.let { account ->
+                                context.preferences.edit {
+                                    putString(ytmAccountNameKey, account.name)
+                                    putString(ytmAccountEmailKey, account.email ?: "")
+                                }
+                            }
+                        }
+                    }
+                    popDestination()
+                }
             )
         }
     }

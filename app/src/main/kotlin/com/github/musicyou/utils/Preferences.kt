@@ -38,6 +38,9 @@ const val navigationLabelsVisibilityKey = "navigationLabelsVisibility"
 const val listGesturesEnabledKey = "listGesturesEnabled"
 const val playerGesturesEnabledKey = "songGesturesEnabled"
 const val miniplayerGesturesEnabledKey = "miniplayerGesturesEnabled"
+const val ytmCookieKey = "ytm_cookie"
+const val ytmAccountNameKey = "ytm_account_name"
+const val ytmAccountEmailKey = "ytm_account_email"
 
 inline fun <reified T : Enum<T>> SharedPreferences.getEnum(
     key: String,
