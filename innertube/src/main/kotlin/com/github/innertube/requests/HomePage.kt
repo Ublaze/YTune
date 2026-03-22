@@ -2,10 +2,8 @@ package com.github.innertube.requests
 
 import com.github.innertube.Innertube
 import com.github.innertube.models.BrowseResponse
-import com.github.innertube.models.MusicCarouselShelfRenderer
 import com.github.innertube.models.MusicTwoRowItemRenderer
 import com.github.innertube.models.NavigationEndpoint
-import com.github.innertube.models.Runs
 import com.github.innertube.models.bodies.BrowseBody
 import com.github.innertube.utils.from
 import com.github.innertube.utils.runCatchingNonCancellable
@@ -71,13 +69,6 @@ private fun parseTwoRowItem(renderer: MusicTwoRowItemRenderer): HomeItem? {
         is NavigationEndpoint.Endpoint.Browse -> {
             val browseId = endpoint.browseId ?: return null
             val title = renderer.title?.runs?.firstOrNull()?.text
-            val subtitle = renderer.subtitle?.runs?.map { it.text }?.joinToString("")
-            val thumbnail = renderer.thumbnailRenderer
-                ?.musicThumbnailRenderer
-                ?.thumbnail
-                ?.thumbnails
-                ?.firstOrNull()
-
             when {
                 browseId.startsWith("VL") || browseId.startsWith("RDCLAK") ||
                 browseId.startsWith("PL") || browseId.startsWith("OLAK") -> {
@@ -92,6 +83,8 @@ private fun parseTwoRowItem(renderer: MusicTwoRowItemRenderer): HomeItem? {
                             thumbnail = renderer.thumbnailRenderer
                                 ?.musicThumbnailRenderer
                                 ?.thumbnail
+                                ?.thumbnails
+                                ?.firstOrNull()
                         )
                     )
                 }
@@ -103,7 +96,7 @@ private fun parseTwoRowItem(renderer: MusicTwoRowItemRenderer): HomeItem? {
                                     name = title,
                                     endpoint = endpoint
                                 ),
-                                subscribersCountText = subtitle,
+                                subscribersCountText = renderer.subtitle?.runs?.map { it.text }?.joinToString(""),
                                 thumbnail = renderer.thumbnailRenderer
                                     ?.musicThumbnailRenderer
                                     ?.thumbnail
@@ -138,6 +131,8 @@ private fun parseTwoRowItem(renderer: MusicTwoRowItemRenderer): HomeItem? {
                             thumbnail = renderer.thumbnailRenderer
                                 ?.musicThumbnailRenderer
                                 ?.thumbnail
+                                ?.thumbnails
+                                ?.firstOrNull()
                         )
                     )
                 }
@@ -145,7 +140,6 @@ private fun parseTwoRowItem(renderer: MusicTwoRowItemRenderer): HomeItem? {
         }
         is NavigationEndpoint.Endpoint.Watch -> {
             val title = renderer.title?.runs?.firstOrNull()?.text
-            val subtitleRuns = renderer.subtitle?.runs ?: emptyList()
 
             HomeItem.SongItem(
                 Innertube.SongItem(
