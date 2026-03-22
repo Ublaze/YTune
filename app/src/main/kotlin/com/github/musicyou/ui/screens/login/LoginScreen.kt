@@ -76,8 +76,10 @@ fun LoginScreen(
                 factory = { ctx ->
                     WebView(ctx).apply {
                         settings.javaScriptEnabled = true
+                        settings.domStorageEnabled = true
                         settings.setSupportZoom(true)
                         settings.builtInZoomControls = true
+                        settings.displayZoomControls = false
 
                         cookieManager.setAcceptCookie(true)
                         cookieManager.setAcceptThirdPartyCookies(this, true)
@@ -110,11 +112,20 @@ fun LoginScreen(
                             override fun onPageFinished(view: WebView?, url: String?) {
                                 super.onPageFinished(view, url)
                                 isLoading = false
+
                                 // Try to extract visitorData from YouTube Music page
                                 if (url?.contains("music.youtube.com") == true) {
                                     view?.loadUrl(
                                         "javascript:Android.onRetrieveVisitorData(window.yt.config_.VISITOR_DATA)"
                                     )
+                                }
+
+                                // Also try cookie capture on page finish as backup
+                                if (!loginHandled) {
+                                    tryCaptureCookies(cookieManager)?.let { cookies ->
+                                        loginHandled = true
+                                        onLoginSuccess(cookies)
+                                    }
                                 }
                             }
 
@@ -124,11 +135,11 @@ fun LoginScreen(
                                 isReload: Boolean
                             ) {
                                 if (loginHandled) return
-                                // After Google login, the redirect chain ends at music.youtube.com
-                                if (url?.startsWith("https://music.youtube.com") == true) {
+                                // Check on any YouTube domain — the redirect chain
+                                // may stop at youtube.com before reaching music.youtube.com
+                                if (url?.contains("youtube.com") == true) {
                                     cookieManager.flush()
-                                    val cookies = cookieManager.getCookie(url)
-                                    if (cookies != null && cookies.contains("SAPISID")) {
+                                    tryCaptureCookies(cookieManager)?.let { cookies ->
                                         loginHandled = true
                                         onLoginSuccess(cookies)
                                     }
@@ -149,4 +160,37 @@ fun LoginScreen(
             }
         }
     }
+}
+
+/**
+ * Check multiple YouTube domains for auth cookies.
+ * Returns the cookie string from music.youtube.com if auth cookies are found,
+ * or falls back to whichever domain has them.
+ */
+private fun tryCaptureCookies(cookieManager: CookieManager): String? {
+    // Check multiple domains where Google may have set auth cookies
+    val domains = listOf(
+        "https://music.youtube.com",
+        "https://www.youtube.com",
+        "https://youtube.com",
+        "https://accounts.google.com"
+    )
+
+    for (domain in domains) {
+        val cookies = cookieManager.getCookie(domain) ?: continue
+        if (hasAuthCookies(cookies)) {
+            // Prefer cookies from music.youtube.com for Innertube API
+            val musicCookies = cookieManager.getCookie("https://music.youtube.com")
+            if (musicCookies != null && hasAuthCookies(musicCookies)) {
+                return musicCookies
+            }
+            return cookies
+        }
+    }
+    return null
+}
+
+private fun hasAuthCookies(cookies: String): Boolean {
+    return cookies.contains("SAPISID=") ||
+           cookies.contains("__Secure-3PAPISID=")
 }
