@@ -15,10 +15,16 @@ import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
 
 suspend fun Innertube.player(videoId: String) = runCatchingNonCancellable {
+    val playerClient = if (isLoggedIn) {
+        YouTubeClient.WEB_REMIX
+    } else {
+        YouTubeClient.ANDROID_VR
+    }
+
     val response = client.post(PLAYER) {
         setBody(
             PlayerBody(
-                context = YouTubeClient.ANDROID_VR.toContext(visitorData = visitorData),
+                context = playerClient.toContext(visitorData = visitorData),
                 videoId = videoId
             )
         )

@@ -202,4 +202,5 @@
     <string name="sign_in_description">Sign in to your Google account to access your YouTube Music playlists and library.</string>
     <string name="signed_in_description">Your YouTube Music playlists are now available in the Playlists tab.</string>
     <string name="youtube_music_playlists">YouTube Music</string>
+    <string name="for_you">For you</string>
 </resources>

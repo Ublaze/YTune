@@ -2,13 +2,18 @@ package com.github.musicyou.ui.screens.home
 
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -41,12 +46,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil3.compose.AsyncImage
 import com.github.innertube.Innertube
 import com.github.innertube.models.NavigationEndpoint
 import com.github.innertube.requests.HomeItem
@@ -98,10 +108,11 @@ fun QuickPicks(
 
     val songThumbnailSizeDp = Dimensions.thumbnails.song
     val itemSize = 108.dp + 2 * 8.dp
+    val homeCardSize = 150.dp
     val quickPicksLazyGridState = rememberLazyGridState()
     val sectionTextModifier = Modifier
         .padding(horizontal = 16.dp)
-        .padding(bottom = 8.dp)
+        .padding(top = 4.dp, bottom = 8.dp)
 
     LaunchedEffect(quickPicksSource) {
         viewModel.loadQuickPicks(quickPicksSource = quickPicksSource)
@@ -114,7 +125,7 @@ fun QuickPicks(
     }
 
     HomeScaffold(
-        title = R.string.quick_picks,
+        title = R.string.home,
         openSearch = openSearch,
         openSettings = openSettings
     ) {
@@ -148,13 +159,14 @@ fun QuickPicks(
                     viewModel.homeSections.forEach { section ->
                         Text(
                             text = section.title,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
                             modifier = sectionTextModifier
                         )
 
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(
                                 items = section.items,
@@ -168,8 +180,8 @@ fun QuickPicks(
                                 }
                             ) { item ->
                                 when (item) {
-                                    is HomeItem.SongItem -> SongItem(
-                                        modifier = Modifier.width(itemSize),
+                                    is HomeItem.SongItem -> HomeSongCard(
+                                        modifier = Modifier.width(homeCardSize),
                                         song = item.item,
                                         onClick = {
                                             val mediaItem = item.item.asMediaItem
@@ -193,17 +205,17 @@ fun QuickPicks(
                                         }
                                     )
                                     is HomeItem.AlbumItem -> AlbumItem(
-                                        modifier = Modifier.widthIn(max = itemSize),
+                                        modifier = Modifier.widthIn(max = homeCardSize),
                                         album = item.item,
                                         onClick = { onAlbumClick(item.item.key) }
                                     )
                                     is HomeItem.ArtistItem -> ArtistItem(
-                                        modifier = Modifier.widthIn(max = itemSize),
+                                        modifier = Modifier.widthIn(max = homeCardSize),
                                         artist = item.item,
                                         onClick = { onArtistClick(item.item.key) }
                                     )
                                     is HomeItem.PlaylistItem -> PlaylistItem(
-                                        modifier = Modifier.widthIn(max = itemSize),
+                                        modifier = Modifier.widthIn(max = homeCardSize),
                                         playlist = item.item,
                                         onClick = { onPlaylistClick(item.item.key) }
                                     )
@@ -211,14 +223,15 @@ fun QuickPicks(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(Dimensions.spacer))
+                        Spacer(modifier = Modifier.height(20.dp))
                     }
                 }
 
                 viewModel.relatedPageResult?.getOrNull()?.let { related ->
                     Text(
                         text = stringResource(id = R.string.quick_picks),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
                         modifier = sectionTextModifier
                     )
 
@@ -297,23 +310,25 @@ fun QuickPicks(
                     }
 
                     related.albums?.let { albums ->
-                        Spacer(modifier = Modifier.height(Dimensions.spacer))
+                        Spacer(modifier = Modifier.height(20.dp))
 
                         Text(
                             text = stringResource(id = R.string.related_albums),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
                             modifier = sectionTextModifier
                         )
 
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 8.dp)
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             items(
                                 items = albums,
                                 key = Innertube.AlbumItem::key
                             ) { album ->
                                 AlbumItem(
-                                    modifier = Modifier.widthIn(max = itemSize),
+                                    modifier = Modifier.widthIn(max = homeCardSize),
                                     album = album,
                                     onClick = { onAlbumClick(album.key) }
                                 )
@@ -322,23 +337,25 @@ fun QuickPicks(
                     }
 
                     related.artists?.let { artists ->
-                        Spacer(modifier = Modifier.height(Dimensions.spacer))
+                        Spacer(modifier = Modifier.height(20.dp))
 
                         Text(
                             text = stringResource(id = R.string.similar_artists),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
                             modifier = sectionTextModifier
                         )
 
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 8.dp)
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             items(
                                 items = artists,
                                 key = Innertube.ArtistItem::key,
                             ) { artist ->
                                 ArtistItem(
-                                    modifier = Modifier.widthIn(max = itemSize),
+                                    modifier = Modifier.widthIn(max = homeCardSize),
                                     artist = artist,
                                     onClick = { onArtistClick(artist.key) }
                                 )
@@ -347,23 +364,25 @@ fun QuickPicks(
                     }
 
                     related.playlists?.let { playlists ->
-                        Spacer(modifier = Modifier.height(Dimensions.spacer))
+                        Spacer(modifier = Modifier.height(20.dp))
 
                         Text(
                             text = stringResource(id = R.string.recommended_playlists),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
                             modifier = sectionTextModifier
                         )
 
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 8.dp)
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             items(
                                 items = playlists,
                                 key = Innertube.PlaylistItem::key,
                             ) { playlist ->
                                 PlaylistItem(
-                                    modifier = Modifier.widthIn(max = itemSize),
+                                    modifier = Modifier.widthIn(max = homeCardSize),
                                     playlist = playlist,
                                     onClick = { onPlaylistClick(playlist.key) }
                                 )
@@ -432,7 +451,7 @@ fun QuickPicks(
                         modifier = Modifier.padding(start = 8.dp)
                     ) {
                         repeat(2) {
-                            ItemPlaceholder(modifier = Modifier.widthIn(max = itemSize))
+                            ItemPlaceholder(modifier = Modifier.widthIn(max = homeCardSize))
                         }
                     }
 
@@ -445,7 +464,7 @@ fun QuickPicks(
                     ) {
                         repeat(2) {
                             ItemPlaceholder(
-                                modifier = Modifier.widthIn(max = itemSize),
+                                modifier = Modifier.widthIn(max = homeCardSize),
                                 shape = CircleShape
                             )
                         }
@@ -459,10 +478,71 @@ fun QuickPicks(
                         modifier = Modifier.padding(start = 8.dp)
                     ) {
                         repeat(2) {
-                            ItemPlaceholder(modifier = Modifier.widthIn(max = itemSize))
+                            ItemPlaceholder(modifier = Modifier.widthIn(max = homeCardSize))
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun HomeSongCard(
+    modifier: Modifier = Modifier,
+    song: Innertube.SongItem,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.large)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
+            .padding(8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(MaterialTheme.shapes.medium)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = song.thumbnail?.size(512),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(MaterialTheme.shapes.medium)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = song.info?.name ?: "",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        song.authors?.joinToString(separator = "") { it.name ?: "" }?.let { artists ->
+            if (artists.isNotBlank()) {
+                Text(
+                    text = artists,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
