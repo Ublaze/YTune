@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
@@ -44,11 +45,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import com.github.innertube.models.NavigationEndpoint
@@ -63,6 +70,7 @@ import com.github.musicyou.utils.isLandscape
 import com.github.musicyou.utils.positionAndDurationState
 import com.github.musicyou.utils.seamlessPlay
 import com.github.musicyou.utils.shouldBePlaying
+import com.github.musicyou.utils.thumbnail
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
@@ -167,12 +175,35 @@ fun Player(
         )
     }
 
-    Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Box(
-            modifier = Modifier.weight(1F)
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Blurred album art background
+        AsyncImage(
+            model = mediaItem.mediaMetadata.artworkUri?.thumbnail(size = 256),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .blur(64.dp)
+                .drawWithContent {
+                    drawContent()
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.6f),
+                                Color.Black.copy(alpha = 0.8f)
+                            )
+                        )
+                    )
+                }
+        )
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxSize()
         ) {
+            Box(
+                modifier = Modifier.weight(1F)
+            ) {
             if (isLandscape) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -311,6 +342,7 @@ fun Player(
                     onGoToArtist = onGoToArtist
                 )
             }
+        }
         }
     }
 }
