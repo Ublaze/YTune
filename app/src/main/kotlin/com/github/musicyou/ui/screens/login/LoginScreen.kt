@@ -91,11 +91,20 @@ fun LoginScreen(
                             override fun onPageFinished(view: WebView?, url: String?) {
                                 super.onPageFinished(view, url)
                                 isLoading = false
-                                if (url == null || loginHandled) return
+                            }
 
-                                checkForLoginCookies(cookieManager)?.let { cookies ->
-                                    loginHandled = true
-                                    onLoginSuccess(cookies)
+                            override fun doUpdateVisitedHistory(
+                                view: WebView?,
+                                url: String?,
+                                isReload: Boolean
+                            ) {
+                                if (loginHandled) return
+                                if (url?.startsWith("https://music.youtube.com") == true) {
+                                    cookieManager.flush()
+                                    checkForLoginCookies(cookieManager)?.let { cookies ->
+                                        loginHandled = true
+                                        onLoginSuccess(cookies)
+                                    }
                                 }
                             }
                         }

@@ -15,11 +15,31 @@ import com.github.innertube.models.NavigationEndpoint
 import com.github.innertube.models.Runs
 import com.github.innertube.models.Thumbnail
 import kotlinx.serialization.json.Json
+import java.security.MessageDigest
 
 object Innertube {
     var cookie: String? = null
 
     val isLoggedIn: Boolean get() = !cookie.isNullOrBlank()
+
+    private const val ORIGIN = "https://music.youtube.com"
+
+    private fun generateSapisidHash(): String? {
+        val cookieStr = cookie ?: return null
+        val sapisid = cookieStr.split("; ")
+            .map { it.split("=", limit = 2) }
+            .filter { it.size == 2 }
+            .firstOrNull { it[0] == "SAPISID" || it[0] == "__Secure-3PAPISID" }
+            ?.get(1) ?: return null
+
+        val timestamp = System.currentTimeMillis() / 1000
+        val input = "$timestamp $sapisid $ORIGIN"
+        val digest = MessageDigest.getInstance("SHA-1")
+        val hash = digest.digest(input.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+
+        return "SAPISIDHASH ${timestamp}_$hash"
+    }
 
     val client = HttpClient(OkHttp) {
         expectSuccess = true
@@ -37,12 +57,19 @@ object Innertube {
         }
 
         defaultRequest {
-            url(scheme = "https", host ="music.youtube.com") {
+            url(scheme = "https", host = "music.youtube.com") {
                 contentType(ContentType.Application.Json)
-                headers.append("X-Goog-Api-Key", "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8")
                 parameters.append("prettyPrint", "false")
             }
-            cookie?.let { header("Cookie", it) }
+            val currentCookie = cookie
+            if (currentCookie != null) {
+                header("Cookie", currentCookie)
+                generateSapisidHash()?.let { header("Authorization", it) }
+                header("X-Origin", ORIGIN)
+                header("Origin", ORIGIN)
+            } else {
+                header("X-Goog-Api-Key", "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8")
+            }
         }
     }
 
