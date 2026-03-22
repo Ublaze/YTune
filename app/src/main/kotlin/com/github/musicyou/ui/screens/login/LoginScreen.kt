@@ -3,6 +3,7 @@ package com.github.musicyou.ui.screens.login
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.webkit.CookieManager
+import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -27,7 +28,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
+import com.github.innertube.Innertube
 import com.github.musicyou.R
+
+private const val GOOGLE_LOGIN_URL =
+    "https://accounts.google.com/ServiceLogin" +
+    "?ltmpl=music" +
+    "&service=youtube" +
+    "&passive=true" +
+    "&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin" +
+    "%3Faction_handle_signin%3Dtrue" +
+    "%26next%3Dhttps%253A%252F%252Fmusic.youtube.com%252F"
 
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,13 +76,21 @@ fun LoginScreen(
                 factory = { ctx ->
                     WebView(ctx).apply {
                         settings.javaScriptEnabled = true
-                        settings.domStorageEnabled = true
                         settings.setSupportZoom(true)
                         settings.builtInZoomControls = true
-                        settings.displayZoomControls = false
 
                         cookieManager.setAcceptCookie(true)
                         cookieManager.setAcceptThirdPartyCookies(this, true)
+
+                        // JavaScript bridge to extract visitorData from YTM page
+                        addJavascriptInterface(object {
+                            @JavascriptInterface
+                            fun onRetrieveVisitorData(newVisitorData: String?) {
+                                if (newVisitorData != null) {
+                                    Innertube.visitorData = newVisitorData
+                                }
+                            }
+                        }, "Android")
 
                         webViewClient = object : WebViewClient() {
                             override fun onPageStarted(
@@ -91,6 +110,12 @@ fun LoginScreen(
                             override fun onPageFinished(view: WebView?, url: String?) {
                                 super.onPageFinished(view, url)
                                 isLoading = false
+                                // Try to extract visitorData from YouTube Music page
+                                if (url?.contains("music.youtube.com") == true) {
+                                    view?.loadUrl(
+                                        "javascript:Android.onRetrieveVisitorData(window.yt.config_.VISITOR_DATA)"
+                                    )
+                                }
                             }
 
                             override fun doUpdateVisitedHistory(
@@ -99,9 +124,11 @@ fun LoginScreen(
                                 isReload: Boolean
                             ) {
                                 if (loginHandled) return
+                                // After Google login, the redirect chain ends at music.youtube.com
                                 if (url?.startsWith("https://music.youtube.com") == true) {
                                     cookieManager.flush()
-                                    checkForLoginCookies(cookieManager)?.let { cookies ->
+                                    val cookies = cookieManager.getCookie(url)
+                                    if (cookies != null && cookies.contains("SAPISID")) {
                                         loginHandled = true
                                         onLoginSuccess(cookies)
                                     }
@@ -109,10 +136,8 @@ fun LoginScreen(
                             }
                         }
 
-                        // Load YouTube Music directly — it will redirect to
-                        // Google sign-in if needed, and uses the simpler
-                        // account picker when accounts exist on the device
-                        loadUrl("https://music.youtube.com")
+                        // Load Google ServiceLogin — redirects to music.youtube.com after login
+                        loadUrl(GOOGLE_LOGIN_URL)
                     }
                 }
             )
@@ -124,28 +149,4 @@ fun LoginScreen(
             }
         }
     }
-}
-
-private fun checkForLoginCookies(cookieManager: CookieManager): String? {
-    // Check multiple domains where Google sets auth cookies
-    val domains = listOf(
-        "https://music.youtube.com",
-        "https://www.youtube.com",
-        "https://.youtube.com"
-    )
-
-    for (domain in domains) {
-        val cookies = cookieManager.getCookie(domain)
-        if (cookies != null && (cookies.contains("SAPISID") || cookies.contains("__Secure-3PAPISID"))) {
-            // Get the full cookie string from music.youtube.com specifically
-            // as that's what the Innertube API needs
-            val musicCookies = cookieManager.getCookie("https://music.youtube.com")
-            if (musicCookies != null && musicCookies.contains("SAPISID")) {
-                return musicCookies
-            }
-            // Fall back to the domain where we found cookies
-            return cookies
-        }
-    }
-    return null
 }

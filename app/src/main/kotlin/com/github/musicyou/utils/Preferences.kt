@@ -39,6 +39,7 @@ const val listGesturesEnabledKey = "listGesturesEnabled"
 const val playerGesturesEnabledKey = "songGesturesEnabled"
 const val miniplayerGesturesEnabledKey = "miniplayerGesturesEnabled"
 const val ytmCookieKey = "ytm_cookie"
+const val ytmVisitorDataKey = "ytm_visitor_data"
 const val ytmAccountNameKey = "ytm_account_name"
 const val ytmAccountEmailKey = "ytm_account_email"
 

@@ -15,6 +15,7 @@ import com.github.musicyou.utils.coilDiskCacheMaxSizeKey
 import com.github.musicyou.utils.getEnum
 import com.github.musicyou.utils.preferences
 import com.github.musicyou.utils.ytmCookieKey
+import com.github.musicyou.utils.ytmVisitorDataKey
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -28,6 +29,11 @@ class MainApplication : Application(), SingletonImageLoader.Factory {
         val storedCookie = preferences.getString(ytmCookieKey, null)
         if (!storedCookie.isNullOrBlank()) {
             Innertube.cookie = storedCookie
+        }
+
+        val storedVisitorData = preferences.getString(ytmVisitorDataKey, null)
+        if (!storedVisitorData.isNullOrBlank()) {
+            Innertube.visitorData = storedVisitorData
         }
 
         GlobalScope.launch {

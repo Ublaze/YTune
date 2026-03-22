@@ -40,6 +40,7 @@ import com.github.musicyou.utils.rememberPreference
 import com.github.musicyou.utils.ytmAccountEmailKey
 import com.github.musicyou.utils.ytmAccountNameKey
 import com.github.musicyou.utils.ytmCookieKey
+import com.github.musicyou.utils.ytmVisitorDataKey
 import androidx.core.content.edit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -289,6 +290,9 @@ fun Navigation(
                     Innertube.cookie = cookies
                     context.preferences.edit {
                         putString(ytmCookieKey, cookies)
+                        Innertube.visitorData?.let {
+                            putString(ytmVisitorDataKey, it)
+                        }
                     }
                     scope.launch {
                         withContext(Dispatchers.IO) {
