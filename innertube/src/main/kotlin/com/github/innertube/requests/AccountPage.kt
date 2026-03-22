@@ -47,12 +47,25 @@ private data class AccountMenuResponse(
     data class ActiveAccountHeaderRenderer(
         val accountName: AccountText? = null,
         val email: AccountText? = null,
-        val channelHandle: AccountText? = null
+        val channelHandle: AccountText? = null,
+        val accountPhoto: AccountPhoto? = null
     )
 
     @Serializable
     data class AccountText(
         val simpleText: String? = null
+    )
+
+    @Serializable
+    data class AccountPhoto(
+        val thumbnails: List<PhotoThumbnail>? = null
+    )
+
+    @Serializable
+    data class PhotoThumbnail(
+        val url: String? = null,
+        val width: Int? = null,
+        val height: Int? = null
     )
 }
 
@@ -70,10 +83,15 @@ suspend fun Innertube.accountInfo() = runCatchingNonCancellable {
         ?.activeAccountHeaderRenderer
 
     header?.let {
+        val photoUrl = it.accountPhoto?.thumbnails
+            ?.maxByOrNull { thumb -> thumb.width ?: 0 }
+            ?.url
+
         AccountInfo(
             name = it.accountName?.simpleText ?: "",
             email = it.email?.simpleText,
-            channelHandle = it.channelHandle?.simpleText
+            channelHandle = it.channelHandle?.simpleText,
+            photoUrl = photoUrl
         )
     }
 }

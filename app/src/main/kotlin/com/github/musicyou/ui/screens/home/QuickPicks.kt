@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.times
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.innertube.Innertube
 import com.github.innertube.models.NavigationEndpoint
+import com.github.innertube.requests.HomeItem
 import com.github.musicyou.LocalPlayerPadding
 import com.github.musicyou.LocalPlayerServiceBinder
 import com.github.musicyou.R
@@ -106,6 +107,12 @@ fun QuickPicks(
         viewModel.loadQuickPicks(quickPicksSource = quickPicksSource)
     }
 
+    LaunchedEffect(Innertube.isLoggedIn) {
+        if (Innertube.isLoggedIn) {
+            viewModel.loadPersonalizedHome()
+        }
+    }
+
     HomeScaffold(
         title = R.string.quick_picks,
         openSearch = openSearch,
@@ -136,6 +143,78 @@ fun QuickPicks(
                     .verticalScroll(rememberScrollState())
                     .padding(top = 4.dp, bottom = 16.dp + playerPadding)
             ) {
+                // Personalized sections from YouTube Music (when logged in)
+                if (viewModel.homeSections.isNotEmpty()) {
+                    viewModel.homeSections.forEach { section ->
+                        Text(
+                            text = section.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = sectionTextModifier
+                        )
+
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            items(
+                                items = section.items,
+                                key = { item ->
+                                    when (item) {
+                                        is HomeItem.SongItem -> "song_${item.item.key}"
+                                        is HomeItem.AlbumItem -> "album_${item.item.key}"
+                                        is HomeItem.ArtistItem -> "artist_${item.item.key}"
+                                        is HomeItem.PlaylistItem -> "playlist_${item.item.key}"
+                                    }
+                                }
+                            ) { item ->
+                                when (item) {
+                                    is HomeItem.SongItem -> SongItem(
+                                        modifier = Modifier.width(itemSize),
+                                        song = item.item,
+                                        onClick = {
+                                            val mediaItem = item.item.asMediaItem
+                                            binder?.stopRadio()
+                                            binder?.player?.forcePlay(mediaItem)
+                                            binder?.setupRadio(
+                                                NavigationEndpoint.Endpoint.Watch(
+                                                    videoId = mediaItem.mediaId
+                                                )
+                                            )
+                                        },
+                                        onLongClick = {
+                                            menuState.display {
+                                                NonQueuedMediaItemMenu(
+                                                    onDismiss = menuState::hide,
+                                                    mediaItem = item.item.asMediaItem,
+                                                    onGoToAlbum = onAlbumClick,
+                                                    onGoToArtist = onArtistClick
+                                                )
+                                            }
+                                        }
+                                    )
+                                    is HomeItem.AlbumItem -> AlbumItem(
+                                        modifier = Modifier.widthIn(max = itemSize),
+                                        album = item.item,
+                                        onClick = { onAlbumClick(item.item.key) }
+                                    )
+                                    is HomeItem.ArtistItem -> ArtistItem(
+                                        modifier = Modifier.widthIn(max = itemSize),
+                                        artist = item.item,
+                                        onClick = { onArtistClick(item.item.key) }
+                                    )
+                                    is HomeItem.PlaylistItem -> PlaylistItem(
+                                        modifier = Modifier.widthIn(max = itemSize),
+                                        playlist = item.item,
+                                        onClick = { onPlaylistClick(item.item.key) }
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(Dimensions.spacer))
+                    }
+                }
+
                 viewModel.relatedPageResult?.getOrNull()?.let { related ->
                     Text(
                         text = stringResource(id = R.string.quick_picks),

@@ -42,6 +42,7 @@ const val ytmCookieKey = "ytm_cookie"
 const val ytmVisitorDataKey = "ytm_visitor_data"
 const val ytmAccountNameKey = "ytm_account_name"
 const val ytmAccountEmailKey = "ytm_account_email"
+const val ytmAccountPhotoKey = "ytm_account_photo"
 
 inline fun <reified T : Enum<T>> SharedPreferences.getEnum(
     key: String,

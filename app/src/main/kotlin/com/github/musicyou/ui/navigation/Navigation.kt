@@ -39,6 +39,7 @@ import com.github.musicyou.utils.preferences
 import com.github.musicyou.utils.rememberPreference
 import com.github.musicyou.utils.ytmAccountEmailKey
 import com.github.musicyou.utils.ytmAccountNameKey
+import com.github.musicyou.utils.ytmAccountPhotoKey
 import com.github.musicyou.utils.ytmCookieKey
 import com.github.musicyou.utils.ytmVisitorDataKey
 import androidx.core.content.edit
@@ -300,6 +301,7 @@ fun Navigation(
                                 context.preferences.edit {
                                     putString(ytmAccountNameKey, account.name)
                                     putString(ytmAccountEmailKey, account.email ?: "")
+                                    putString(ytmAccountPhotoKey, account.photoUrl ?: "")
                                 }
                             }
                         }

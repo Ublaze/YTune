@@ -5,6 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.github.innertube.Innertube
+import com.github.innertube.requests.HomeSection
+import com.github.innertube.requests.personalizedHome
 import com.github.innertube.requests.relatedPage
 import com.github.musicyou.database
 import com.github.musicyou.enums.QuickPicksSource
@@ -14,6 +16,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 class QuickPicksViewModel : ViewModel() {
     var trending: Song? by mutableStateOf(null)
     var relatedPageResult: Result<Innertube.RelatedPage?>? by mutableStateOf(null)
+    var homeSections: List<HomeSection> by mutableStateOf(emptyList())
+    var homeSectionsLoading: Boolean by mutableStateOf(false)
 
     suspend fun loadQuickPicks(quickPicksSource: QuickPicksSource) {
         val flow = when (quickPicksSource) {
@@ -31,5 +35,14 @@ class QuickPicksViewModel : ViewModel() {
 
             trending = song
         }
+    }
+
+    suspend fun loadPersonalizedHome() {
+        if (homeSections.isNotEmpty() || homeSectionsLoading) return
+        homeSectionsLoading = true
+        Innertube.personalizedHome()?.getOrNull()?.let { sections ->
+            homeSections = sections
+        }
+        homeSectionsLoading = false
     }
 }
