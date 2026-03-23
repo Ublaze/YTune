@@ -58,7 +58,7 @@
     <string name="pause_search_history_description">Neither save new searched queries nor show history</string>
     <string name="clear_search_history">Clear search history</string>
     <string name="android_auto_description">Enable Android Auto support</string>
-    <string name="android_auto_information">Remember to enable \"Unknown sources\" in the Developer Settings of Android Auto.</string>
+    <string name="android_auto_information">Since YTune is not installed from the Play Store, Android Auto requires a one-time setup: open Android Auto settings on your phone, tap the version number 10 times to unlock Developer Settings, then enable \"Allow unknown sources\". This is safe and only needed for apps installed outside the Play Store.</string>
     <string name="ignore_battery_optimizations">Ignore battery optimizations</string>
     <string name="service_lifetime_description">When turning off battery optimizations is not enough</string>
     <string name="service_lifetime_information">If battery optimizations are applied, the playback notification can suddenly disappear when paused.</string>
