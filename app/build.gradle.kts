@@ -7,6 +7,17 @@ plugins {
     alias(libs.plugins.kotlin.ksp)
 }
 
+fun getVersionFromGit(): String = try {
+    val process = ProcessBuilder("git", "describe", "--tags", "--abbrev=0")
+        .redirectErrorStream(true).start()
+    process.inputStream.bufferedReader().readText().trim().removePrefix("v").ifEmpty { "1.0.0" }
+} catch (_: Exception) { "1.0.0" }
+
+fun versionToCode(version: String): Int {
+    val parts = version.split(".").map { it.toIntOrNull() ?: 0 }
+    return parts.getOrElse(0) { 0 } * 10000 + parts.getOrElse(1) { 0 } * 100 + parts.getOrElse(2) { 0 }
+}
+
 kotlin {
     compilerOptions {
         languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_3
@@ -25,8 +36,8 @@ android {
     defaultConfig {
         applicationId = "com.github.musicyou"
         minSdk = 23
-        versionCode = 13
-        versionName = "1.0.0"
+        versionCode = versionToCode(getVersionFromGit())
+        versionName = getVersionFromGit()
     }
 
     splits {

@@ -184,6 +184,8 @@
     <string name="no_updates_available">No updates available</string>
     <string name="version">Version %s</string>
     <string name="open_in_github">Open in GitHub</string>
+    <string name="download_and_install">Download &amp; Install</string>
+    <string name="downloading_update">Downloading update</string>
     <string name="gestures">Gestures</string>
     <string name="player_gestures">Player gestures</string>
     <string name="miniplayer_gestures">Miniplayer gestures</string>
