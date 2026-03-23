@@ -9,11 +9,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Ublaze/YTune/releases/latest"><img src="https://img.shields.io/github/v/release/Ublaze/YTune?style=for-the-badge&color=blue" alt="Latest Release"></a>
-  <img src="https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android">
-  <img src="https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin">
-  <img src="https://img.shields.io/badge/Jetpack%20Compose-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white" alt="Jetpack Compose">
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Ublaze/YTune?style=for-the-badge" alt="License"></a>
+  <a href="https://github.com/Ublaze/YTune/releases/latest"><img src="https://img.shields.io/github/v/release/Ublaze/YTune?style=flat-square&color=blue" alt="Latest Release"></a>
+  <img src="https://img.shields.io/badge/Android-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android">
+  <img src="https://img.shields.io/badge/Kotlin-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin">
+  <img src="https://img.shields.io/badge/Jetpack%20Compose-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white" alt="Jetpack Compose">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Ublaze/YTune?style=flat-square" alt="License"></a>
 </p>
 
 ---
@@ -24,6 +24,7 @@ Stream your favorite music straight from YouTube Music -- with background playba
 <summary><strong>Table of Contents</strong></summary>
 
 - [Screenshots](#screenshots)
+- [Why YTune?](#why-ytune)
 - [Features](#features)
 - [Installation](#installation)
 - [Built With](#built-with)
@@ -47,6 +48,23 @@ Stream your favorite music straight from YouTube Music -- with background playba
   <img src="screenshots/screenshot_artist.png" width="200">
   <img src="screenshots/screenshot_artists.png" width="200">
 </p>
+
+## Why YTune?
+
+| Feature | YTune | ViMusic | InnerTune | Musify |
+|---------|:---:|:---:|:---:|:---:|
+| Google Sign-In | Yes | - | - | - |
+| Playlist sync | Yes | - | Partial | - |
+| Background playback | Yes | Yes | Yes | Yes |
+| Offline caching | Yes | Yes | Yes | Yes |
+| Synced lyrics | Yes | - | Yes | - |
+| Material You | Yes | Yes | Yes | - |
+| Android Auto | Yes | - | - | - |
+| Sleep timer | Yes | - | Yes | - |
+| Audio normalization | Yes | - | Yes | - |
+| Skip silence | Yes | - | Yes | - |
+| Multilingual | 5 langs | Yes | Yes | Yes |
+| Open source | GPL-3.0 | GPL-3.0 | GPL-3.0 | GPL-3.0 |
 
 ## Features
 
@@ -116,9 +134,8 @@ Want to help translate? Contributions are always welcome.
 
 ## Contributing
 
-Found a bug? Have an idea? [Open an issue](../../issues/new/choose) or submit a pull request -- all contributions are welcome.
+Check out [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, or just [open an issue](../../issues/new/choose).
 
-Please be respectful and constructive. This is a passion project built in the open.
 
 ## Disclaimer
 
@@ -129,3 +146,11 @@ Any trademark, service mark, trade name, or other intellectual property rights u
 ## License
 
 YTune is licensed under the [GNU General Public License v3.0](LICENSE).
+
+---
+
+<div align="center">
+
+If you enjoy YTune, consider giving it a :star: — it helps others discover it!
+
+</div>
