@@ -7,11 +7,9 @@ plugins {
     alias(libs.plugins.kotlin.ksp)
 }
 
-fun getVersionFromGit(): String = try {
-    val process = ProcessBuilder("git", "describe", "--tags", "--abbrev=0")
-        .redirectErrorStream(true).start()
-    process.inputStream.bufferedReader().readText().trim().removePrefix("v").ifEmpty { "1.0.0" }
-} catch (_: Exception) { "1.0.0" }
+val gitVersion: Provider<String> = providers.exec {
+    commandLine("git", "describe", "--tags", "--abbrev=0")
+}.standardOutput.asText.map { it.trim().removePrefix("v").ifEmpty { "1.0.0" } }
 
 fun versionToCode(version: String): Int {
     val parts = version.split(".").map { it.toIntOrNull() ?: 0 }
@@ -36,8 +34,8 @@ android {
     defaultConfig {
         applicationId = "com.github.musicyou"
         minSdk = 23
-        versionCode = versionToCode(getVersionFromGit())
-        versionName = getVersionFromGit()
+        versionCode = versionToCode(gitVersion.get())
+        versionName = gitVersion.get()
     }
 
     splits {
