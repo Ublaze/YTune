@@ -19,7 +19,7 @@
 ---
 
 <p align="center">
-  <a href="https://github.com/Ublaze/YTune/releases/latest"><img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_Download_APK-Latest_Release-FF4757?style=for-the-badge&logoColor=white" alt="Download APK"></a>
+  <a href="https://github.com/Ublaze/YTune/releases/latest/download/YTune.apk"><img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_Download_APK-Latest_Release-FF4757?style=for-the-badge&logoColor=white" alt="Download APK"></a>
 </p>
 
 Stream your favorite music straight from YouTube Music -- with background playback, offline caching, lyrics, and a beautiful Material You interface that adapts to your wallpaper. No ads, no nonsense. Just music.

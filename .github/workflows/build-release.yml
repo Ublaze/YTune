@@ -42,8 +42,8 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p release
-          cp app/build/outputs/apk/release/app-universal-release.apk release/YTune-${{ github.ref_name || 'latest' }}.apk 2>/dev/null || \
-          cp app/build/outputs/apk/release/*.apk release/YTune-${{ github.ref_name || 'latest' }}.apk
+          cp app/build/outputs/apk/release/app-universal-release.apk release/YTune.apk 2>/dev/null || \
+          cp app/build/outputs/apk/release/*.apk release/YTune.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
