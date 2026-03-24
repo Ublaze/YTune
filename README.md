@@ -18,7 +18,13 @@
 
 ---
 
+<p align="center">
+  <a href="https://github.com/Ublaze/YTune/releases/latest"><img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_Download_APK-Latest_Release-FF4757?style=for-the-badge&logoColor=white" alt="Download APK"></a>
+</p>
+
 Stream your favorite music straight from YouTube Music -- with background playback, offline caching, lyrics, and a beautiful Material You interface that adapts to your wallpaper. No ads, no nonsense. Just music.
+
+> Already installed? The app updates itself -- go to **Settings > About > Check for Updates**.
 
 <details>
 <summary><strong>Table of Contents</strong></summary>
@@ -95,11 +101,12 @@ Stream your favorite music straight from YouTube Music -- with background playba
 
 ### Download the APK
 
-Grab the latest release and sideload it:
+1. Tap the **Download APK** button above (or go to [Releases](../../releases/latest))
+2. Open the downloaded `.apk` file on your Android device
+3. If prompted, allow installation from this source
+4. Open YTune and sign in with your Google account to sync your library
 
-1. Head to the [Releases](../../releases/latest) page
-2. Download the `.apk` file
-3. Open it on your Android device and install (you may need to allow installs from unknown sources)
+**Updating?** No need to visit GitHub again -- the app checks for updates automatically from **Settings > About > Check for Updates** and installs them directly.
 
 ### Build from source
 
