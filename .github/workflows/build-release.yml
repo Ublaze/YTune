@@ -34,9 +34,9 @@ jobs:
       - name: Build release APK
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/ytune-release.keystore
-          KEYSTORE_PASSWORD: ytune2026
-          KEY_ALIAS: ytune
-          KEY_PASSWORD: ytune2026
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew assembleRelease
 
       - name: Rename APK
@@ -44,6 +44,13 @@ jobs:
           mkdir -p release
           cp app/build/outputs/apk/release/app-universal-release.apk release/YTune.apk 2>/dev/null || \
           cp app/build/outputs/apk/release/*.apk release/YTune.apk
+
+      - name: Verify APK signature
+        run: |
+          APK=$(ls release/*.apk | head -1)
+          echo "Verifying signature of $APK"
+          $ANDROID_SDK_ROOT/build-tools/$(ls $ANDROID_SDK_ROOT/build-tools | sort -V | tail -1)/apksigner verify --verbose "$APK"
+          echo "Signature verification passed."
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

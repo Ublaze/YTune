@@ -54,7 +54,7 @@ fun GestureSettings() {
 
         SwitchSettingEntry(
             title = stringResource(id = R.string.miniplayer_gestures),
-            text = stringResource(id = R.string.player_gestures_description),
+            text = stringResource(id = R.string.miniplayer_gestures_description),
             icon = Icons.Outlined.PlayArrow,
             isChecked = miniplayerGesturesEnabled,
             onCheckedChange = { miniplayerGesturesEnabled = !miniplayerGesturesEnabled }

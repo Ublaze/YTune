@@ -41,11 +41,11 @@ import com.github.innertube.Innertube
 import com.github.musicyou.R
 import com.github.musicyou.utils.preferences
 import com.github.musicyou.utils.rememberPreference
+import androidx.core.content.edit
 import com.github.musicyou.utils.ytmAccountEmailKey
 import com.github.musicyou.utils.ytmAccountNameKey
 import com.github.musicyou.utils.ytmAccountPhotoKey
 import com.github.musicyou.utils.ytmCookieKey
-import androidx.core.content.edit
 
 @Composable
 fun AccountSettings(
@@ -74,7 +74,7 @@ fun AccountSettings(
             if (accountPhoto.isNotBlank()) {
                 AsyncImage(
                     model = accountPhoto,
-                    contentDescription = null,
+                    contentDescription = stringResource(id = R.string.account),
                     modifier = Modifier
                         .size(96.dp)
                         .clip(CircleShape)
@@ -125,13 +125,13 @@ fun AccountSettings(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "Connected to YouTube Music",
+                        text = stringResource(id = R.string.connected_to_ytm),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "Your playlists and personalized recommendations are synced.",
+                        text = stringResource(id = R.string.ytm_playlists_synced),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                     )

@@ -18,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Update
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -52,23 +53,13 @@ import com.github.api.GitHub
 import com.github.musicyou.LocalPlayerPadding
 import com.github.musicyou.R
 import com.github.musicyou.ui.styling.Dimensions
+import com.github.musicyou.utils.compareVersions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
-
-private fun compareVersions(v1: String, v2: String): Int {
-    val parts1 = v1.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
-    val parts2 = v2.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
-    for (i in 0 until maxOf(parts1.size, parts2.size)) {
-        val p1 = parts1.getOrElse(i) { 0 }
-        val p2 = parts2.getOrElse(i) { 0 }
-        if (p1 != p2) return p1 - p2
-    }
-    return 0
-}
 
 @ExperimentalAnimationApi
 @Composable
@@ -79,6 +70,7 @@ fun About() {
     val scope = rememberCoroutineScope()
 
     var isShowingDialog by remember { mutableStateOf(false) }
+    var isShowingPrivacyDialog by remember { mutableStateOf(false) }
     var latestVersion: String? by rememberSaveable { mutableStateOf(null) }
     var newVersionAvailable: Boolean? by rememberSaveable { mutableStateOf(null) }
     var apkDownloadUrl: String? by rememberSaveable { mutableStateOf(null) }
@@ -153,6 +145,47 @@ fun About() {
             },
             modifier = Modifier.clickable {
                 uriHandler.openUri("https://github.com/Ublaze/YTune")
+            }
+        )
+
+        ListItem(
+            headlineContent = {
+                Text(text = stringResource(id = R.string.privacy_policy))
+            },
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.Outlined.Lock,
+                    contentDescription = stringResource(id = R.string.privacy_policy)
+                )
+            },
+            modifier = Modifier.clickable {
+                isShowingPrivacyDialog = true
+            }
+        )
+    }
+
+    if (isShowingPrivacyDialog) {
+        AlertDialog(
+            onDismissRequest = { isShowingPrivacyDialog = false },
+            confirmButton = {
+                TextButton(onClick = { isShowingPrivacyDialog = false }) {
+                    Text(text = stringResource(id = R.string.close))
+                }
+            },
+            title = {
+                Text(text = stringResource(id = R.string.privacy_policy_title))
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.privacy_policy_body),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         )
     }

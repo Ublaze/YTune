@@ -121,4 +121,5 @@ dependencies {
     implementation(projects.innertube)
     implementation(projects.kugou)
     coreLibraryDesugaring(libs.desugaring)
+    testImplementation("junit:junit:4.13.2")
 }

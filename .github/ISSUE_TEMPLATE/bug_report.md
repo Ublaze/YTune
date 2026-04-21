@@ -29,9 +29,19 @@ If applicable, add screenshots or a screen recording to help explain the issue.
 
 - **Device**: (e.g. Pixel 8, Samsung Galaxy S24)
 - **Android version**: (e.g. Android 14)
-- **YTune version**: (e.g. v1.8.0)
+- **YTune version**: (e.g. v1.8.0) — find this in **Settings → About**
 - **Install source**: (APK from Releases / built from source)
+- **Signed in to Google**: (Yes / No)
+- **Network type**: (Wi-Fi / Mobile data / Offline)
+
+## Diagnostic info
+
+> Go to **Settings → About → App Version** and long-press the version number to copy diagnostics, then paste below.
+
+```
+(paste diagnostics here, or leave blank)
+```
 
 ## Additional context
 
-Any other details -- logs, crash messages, or anything else that might help.
+Any other details — logs, crash messages, or anything else that might help.

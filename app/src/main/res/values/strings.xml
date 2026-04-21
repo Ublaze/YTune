@@ -205,4 +205,10 @@
     <string name="signed_in_description">Your YouTube Music playlists are now available in the Playlists tab.</string>
     <string name="youtube_music_playlists">YouTube Music</string>
     <string name="for_you">For you</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="privacy_policy_title">Data &amp; Privacy</string>
+    <string name="privacy_policy_body">YTune stores the following data locally on your device only:\n\n• Your YouTube Music session cookie (used to access your playlists and library)\n• Your Google account name, email address, and profile photo\n• Your playback history and search queries (used for Quick Picks)\n• Song and image cache files (to enable offline playback)\n• Your app preferences and settings\n\nNone of this data is transmitted to the YTune developers or any third party. Network requests go directly from your device to YouTube Music servers.\n\nYTune is not affiliated with, endorsed by, or associated with YouTube or Google LLC.</string>
+    <string name="connected_to_ytm">Connected to YouTube Music</string>
+    <string name="ytm_playlists_synced">Your playlists and personalized recommendations are synced.</string>
+    <string name="miniplayer_gestures_description">Enable gestures to skip to the next or previous song from the mini player</string>
 </resources>
