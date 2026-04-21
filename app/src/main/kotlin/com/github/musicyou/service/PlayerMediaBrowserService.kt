@@ -31,7 +31,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import android.media.MediaDescription as BrowserMediaDescription
 import android.media.browse.MediaBrowser.MediaItem as BrowserMediaItem
@@ -62,10 +61,7 @@ class PlayerMediaBrowserService : MediaBrowserService(), ServiceConnection {
         clientUid: Int,
         rootHints: Bundle?
     ): BrowserRoot? {
-        return if (clientUid == Process.myUid()
-            || clientUid == Process.SYSTEM_UID
-            || clientPackageName == "com.google.android.projection.gearhead"
-        ) {
+        return if (isAllowedClient(clientPackageName, clientUid)) {
             bindService(intent<PlayerService>(), this, BIND_AUTO_CREATE)
             BrowserRoot(
                 MediaId.ROOT,
@@ -75,46 +71,63 @@ class PlayerMediaBrowserService : MediaBrowserService(), ServiceConnection {
     }
 
     override fun onLoadChildren(parentId: String, result: Result<MutableList<BrowserMediaItem>>) {
-        runBlocking(Dispatchers.IO) {
-            result.sendResult(
-                when (parentId) {
-                    MediaId.ROOT -> mutableListOf(
-                        songsBrowserMediaItem,
-                        playlistsBrowserMediaItem,
-                        albumsBrowserMediaItem
-                    )
+        result.detach()
 
-                    MediaId.SONGS -> database
-                        .songsByPlayTimeDesc()
-                        .first()
-                        .take(30)
-                        .also { lastSongs = it }
-                        .map { it.asBrowserMediaItem }
-                        .toMutableList()
-                        .apply {
-                            if (isNotEmpty()) add(0, shuffleBrowserMediaItem)
-                        }
+        coroutineScope.launch {
+            val children = when (parentId) {
+                MediaId.ROOT -> mutableListOf(
+                    songsBrowserMediaItem,
+                    playlistsBrowserMediaItem,
+                    albumsBrowserMediaItem
+                )
 
-                    MediaId.PLAYLISTS -> database
-                        .playlistPreviewsByDateAddedDesc()
-                        .first()
-                        .map { it.asBrowserMediaItem }
-                        .toMutableList()
-                        .apply {
-                            add(0, favoritesBrowserMediaItem)
-                            add(1, offlineBrowserMediaItem)
-                        }
+                MediaId.SONGS -> database
+                    .songsByPlayTimeDesc()
+                    .first()
+                    .take(30)
+                    .also { lastSongs = it }
+                    .map { it.asBrowserMediaItem }
+                    .toMutableList()
+                    .apply {
+                        if (isNotEmpty()) add(0, shuffleBrowserMediaItem)
+                    }
 
-                    MediaId.ALBUMS -> database
-                        .albumsByRowIdDesc()
-                        .first()
-                        .map { it.asBrowserMediaItem }
-                        .toMutableList()
+                MediaId.PLAYLISTS -> database
+                    .playlistPreviewsByDateAddedDesc()
+                    .first()
+                    .map { it.asBrowserMediaItem }
+                    .toMutableList()
+                    .apply {
+                        add(0, favoritesBrowserMediaItem)
+                        add(1, offlineBrowserMediaItem)
+                    }
 
-                    else -> mutableListOf()
-                }
-            )
+                MediaId.ALBUMS -> database
+                    .albumsByRowIdDesc()
+                    .first()
+                    .map { it.asBrowserMediaItem }
+                    .toMutableList()
+
+                else -> mutableListOf()
+            }
+
+            result.sendResult(children)
         }
+    }
+
+    private fun isAllowedClient(clientPackageName: String, clientUid: Int): Boolean {
+        if (clientUid == Process.myUid() || clientUid == Process.SYSTEM_UID) return true
+
+        val packagesForUid = packageManager.getPackagesForUid(clientUid)
+            ?: return false
+
+        if (clientPackageName !in packagesForUid) return false
+
+        return clientPackageName in setOf(
+            "com.google.android.projection.gearhead",
+            "com.android.car.media",
+            "com.google.android.apps.automotive.templates.host"
+        )
     }
 
     private fun uriFor(@DrawableRes id: Int) = Uri.Builder()

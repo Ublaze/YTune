@@ -22,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -41,7 +42,7 @@ import com.github.musicyou.utils.asMediaItem
 import com.github.musicyou.utils.completed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,6 +59,8 @@ fun LocalPlaylistScreen(
 
     var isRenaming by rememberSaveable { mutableStateOf(false) }
     var isDeleting by rememberSaveable { mutableStateOf(false) }
+    var isSyncing by rememberSaveable { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     LaunchedEffect(Unit) {
@@ -89,31 +92,40 @@ fun LocalPlaylistScreen(
                             description = R.string.sync_playlist,
                             onClick = {
                                 playlist?.browseId?.let { browseId ->
-                                    database.transaction {
-                                        runBlocking(Dispatchers.IO) {
-                                            withContext(Dispatchers.IO) {
+                                    if (isSyncing) return@let
+
+                                    coroutineScope.launch {
+                                        isSyncing = true
+                                        try {
+                                            val remotePlaylist = withContext(Dispatchers.IO) {
                                                 Innertube.playlistPage(browseId = browseId)
                                                     ?.completed()
-                                            }
-                                        }?.getOrNull()?.let { remotePlaylist ->
-                                            database.clearPlaylist(playlistId)
+                                                    ?.getOrNull()
+                                            } ?: return@launch
 
-                                            remotePlaylist.songsPage
-                                                ?.items
-                                                ?.map(Innertube.SongItem::asMediaItem)
-                                                ?.onEach(database::insert)
-                                                ?.mapIndexed { position, mediaItem ->
-                                                    SongPlaylistMap(
-                                                        songId = mediaItem.mediaId,
-                                                        playlistId = playlistId,
-                                                        position = position
-                                                    )
-                                                }?.let(database::insertSongPlaylistMaps)
+                                            database.transaction {
+                                                database.clearPlaylist(playlistId)
+
+                                                remotePlaylist.songsPage
+                                                    ?.items
+                                                    ?.map(Innertube.SongItem::asMediaItem)
+                                                    ?.onEach(database::insert)
+                                                    ?.mapIndexed { position, mediaItem ->
+                                                        SongPlaylistMap(
+                                                            songId = mediaItem.mediaId,
+                                                            playlistId = playlistId,
+                                                            position = position
+                                                        )
+                                                    }?.let(database::insertSongPlaylistMaps)
+                                            }
+                                        } finally {
+                                            isSyncing = false
                                         }
                                     }
                                 }
                             },
                             icon = Icons.Outlined.Sync,
+                            enabled = !isSyncing,
                             inTopBar = true
                         )
                     }

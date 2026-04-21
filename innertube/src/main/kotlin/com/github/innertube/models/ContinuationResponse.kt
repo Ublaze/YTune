@@ -13,6 +13,7 @@ data class ContinuationResponse(
     data class ContinuationContents(
         @JsonNames("musicPlaylistShelfContinuation")
         val musicShelfContinuation: MusicShelfRenderer?,
+        val gridContinuation: GridRenderer? = null,
         val playlistPanelContinuation: NextResponse.MusicQueueRenderer.Content.PlaylistPanelRenderer?,
     )
 }

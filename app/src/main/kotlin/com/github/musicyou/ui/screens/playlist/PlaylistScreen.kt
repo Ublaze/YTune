@@ -31,6 +31,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.github.innertube.Innertube
 import com.github.innertube.requests.playlistPage
+import com.github.innertube.requests.playlistPageContinuation
+import com.github.innertube.utils.plus
 import com.github.musicyou.R
 import com.github.musicyou.database
 import com.github.musicyou.models.Playlist
@@ -38,7 +40,6 @@ import com.github.musicyou.models.SongPlaylistMap
 import com.github.musicyou.ui.components.TextFieldDialog
 import com.github.musicyou.ui.components.TooltipIconButton
 import com.github.musicyou.utils.asMediaItem
-import com.github.musicyou.utils.completed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -56,11 +57,28 @@ fun PlaylistScreen(
     var isImportingPlaylist by rememberSaveable { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    LaunchedEffect(Unit) {
-        if (playlistPage != null && playlistPage?.songsPage?.continuation == null) return@LaunchedEffect
+    LaunchedEffect(browseId) {
+        playlistPage = null
 
         playlistPage = withContext(Dispatchers.IO) {
-            Innertube.playlistPage(browseId = browseId)?.completed()?.getOrNull()
+            Innertube.playlistPage(browseId = browseId)?.getOrNull()
+        }
+
+        var continuation = playlistPage?.songsPage?.continuation
+
+        while (continuation != null) {
+            val currentContinuation = continuation
+            val nextPage = withContext(Dispatchers.IO) {
+                Innertube.playlistPageContinuation(continuation = currentContinuation)?.getOrNull()
+            } ?: break
+
+            playlistPage = playlistPage?.let { currentPage ->
+                currentPage.copy(songsPage = currentPage.songsPage + nextPage)
+            }
+
+            val nextContinuation = nextPage.continuation
+            if (nextContinuation == currentContinuation) break
+            continuation = nextContinuation
         }
     }
 
