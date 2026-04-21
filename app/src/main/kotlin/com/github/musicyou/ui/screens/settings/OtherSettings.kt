@@ -55,9 +55,11 @@ fun OtherSettings() {
         val component = ComponentName(context, PlayerMediaBrowserService::class.java)
         val disabledFlag = PackageManager.COMPONENT_ENABLED_STATE_DISABLED
         val enabledFlag = PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+        val defaultFlag = PackageManager.COMPONENT_ENABLED_STATE_DEFAULT
+        val currentFlag = context.packageManager.getComponentEnabledSetting(component)
 
         mutableStateOf(
-            value = context.packageManager.getComponentEnabledSetting(component) == enabledFlag,
+            value = currentFlag == defaultFlag || currentFlag == enabledFlag,
             policy = object : SnapshotMutationPolicy<Boolean> {
                 override fun equivalent(a: Boolean, b: Boolean): Boolean {
                     context.packageManager.setComponentEnabledSetting(

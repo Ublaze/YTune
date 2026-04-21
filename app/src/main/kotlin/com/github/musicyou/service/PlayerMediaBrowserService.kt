@@ -121,13 +121,7 @@ class PlayerMediaBrowserService : MediaBrowserService(), ServiceConnection {
         val packagesForUid = packageManager.getPackagesForUid(clientUid)
             ?: return false
 
-        if (clientPackageName !in packagesForUid) return false
-
-        return clientPackageName in setOf(
-            "com.google.android.projection.gearhead",
-            "com.android.car.media",
-            "com.google.android.apps.automotive.templates.host"
-        )
+        return clientPackageName in packagesForUid
     }
 
     private fun uriFor(@DrawableRes id: Int) = Uri.Builder()

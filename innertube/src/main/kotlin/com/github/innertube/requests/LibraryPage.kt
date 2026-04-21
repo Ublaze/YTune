@@ -29,8 +29,7 @@ suspend fun Innertube.libraryPlaylists() = runCatchingNonCancellable {
         ?.content
         ?.sectionListRenderer
         ?.contents
-        ?.firstOrNull()
-        ?.gridRenderer
+        ?.firstNotNullOfOrNull { it.gridRenderer }
 
     val items = gridRenderer.toPlaylistItems().toMutableList()
     var continuation = gridRenderer.nextContinuation

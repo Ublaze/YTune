@@ -71,23 +71,38 @@ fun <T : Innertube.Item> ItemsPage(
         if (!shouldLoadMore) return@LaunchedEffect
         val currentItemsPageProvider = updatedItemsPageProvider ?: return@LaunchedEffect
 
+        val emptyPage = Innertube.ItemsPage<T>(items = emptyList(), continuation = null)
+
         withContext(Dispatchers.IO) {
             currentItemsPageProvider(itemsPage?.continuation)
-        }?.onSuccess {
-            if (it == null) {
+        }?.fold(
+            onSuccess = {
+                if (it == null) {
+                    viewModel.setItems(
+                        tag = tag,
+                        items = itemsPage + emptyPage
+                    )
+                } else {
+                    viewModel.setItems(
+                        tag = tag,
+                        items = itemsPage + it
+                    )
+                }
+            },
+            onFailure = {
                 if (itemsPage == null) {
                     viewModel.setItems(
                         tag = tag,
-                        items = Innertube.ItemsPage(items = null, continuation = null)
+                        items = emptyPage
+                    )
+                } else {
+                    viewModel.setItems(
+                        tag = tag,
+                        items = itemsPage + emptyPage
                     )
                 }
-            } else {
-                viewModel.setItems(
-                    tag = tag,
-                    items = itemsPage + it
-                )
             }
-        }
+        )
     }
 
     LazyVerticalGrid(

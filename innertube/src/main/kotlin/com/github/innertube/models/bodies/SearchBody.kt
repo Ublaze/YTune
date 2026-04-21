@@ -6,7 +6,16 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class SearchBody(
-    val context: Context = YouTubeClient.WEB_REMIX.toContext(),
+    val context: Context,
     val query: String,
     val params: String
-)
+) {
+    constructor(
+        query: String,
+        params: String
+    ) : this(
+        context = YouTubeClient.WEB_REMIX.toContext(visitorData = com.github.innertube.Innertube.visitorData),
+        query = query,
+        params = params
+    )
+}
