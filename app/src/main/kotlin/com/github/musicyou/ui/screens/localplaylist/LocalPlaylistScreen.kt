@@ -2,18 +2,23 @@ package com.github.musicyou.ui.screens.localplaylist
 
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -25,10 +30,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.github.innertube.Innertube
 import com.github.innertube.requests.playlistPage
 import com.github.musicyou.R
@@ -62,6 +69,10 @@ fun LocalPlaylistScreen(
     var isSyncing by rememberSaveable { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val syncedMessage = stringResource(id = R.string.playlist_synced)
+    val syncFailedMessage = stringResource(id = R.string.playlist_sync_failed)
 
     LaunchedEffect(Unit) {
         database.playlist(playlistId).filterNotNull().collect { playlist = it }
@@ -69,6 +80,7 @@ fun LocalPlaylistScreen(
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             MediumTopAppBar(
                 title = {
@@ -88,46 +100,58 @@ fun LocalPlaylistScreen(
                 },
                 actions = {
                     if (!playlist?.browseId.isNullOrEmpty()) {
-                        TooltipIconButton(
-                            description = R.string.sync_playlist,
-                            onClick = {
-                                playlist?.browseId?.let { browseId ->
-                                    if (isSyncing) return@let
+                        if (isSyncing) {
+                            Box(
+                                modifier = Modifier.size(48.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            }
+                        } else {
+                            TooltipIconButton(
+                                description = R.string.sync_playlist,
+                                onClick = {
+                                    playlist?.browseId?.let { browseId ->
+                                        coroutineScope.launch {
+                                            isSyncing = true
+                                            var syncSucceeded = false
+                                            try {
+                                                val remotePlaylist = withContext(Dispatchers.IO) {
+                                                    Innertube.playlistPage(browseId = browseId)
+                                                        ?.completed()
+                                                        ?.getOrNull()
+                                                }
+                                                if (remotePlaylist != null) {
+                                                    database.transaction {
+                                                        database.clearPlaylist(playlistId)
 
-                                    coroutineScope.launch {
-                                        isSyncing = true
-                                        try {
-                                            val remotePlaylist = withContext(Dispatchers.IO) {
-                                                Innertube.playlistPage(browseId = browseId)
-                                                    ?.completed()
-                                                    ?.getOrNull()
-                                            } ?: return@launch
-
-                                            database.transaction {
-                                                database.clearPlaylist(playlistId)
-
-                                                remotePlaylist.songsPage
-                                                    ?.items
-                                                    ?.map(Innertube.SongItem::asMediaItem)
-                                                    ?.onEach(database::insert)
-                                                    ?.mapIndexed { position, mediaItem ->
-                                                        SongPlaylistMap(
-                                                            songId = mediaItem.mediaId,
-                                                            playlistId = playlistId,
-                                                            position = position
-                                                        )
-                                                    }?.let(database::insertSongPlaylistMaps)
+                                                        remotePlaylist.songsPage
+                                                            ?.items
+                                                            ?.map(Innertube.SongItem::asMediaItem)
+                                                            ?.onEach(database::insert)
+                                                            ?.mapIndexed { position, mediaItem ->
+                                                                SongPlaylistMap(
+                                                                    songId = mediaItem.mediaId,
+                                                                    playlistId = playlistId,
+                                                                    position = position
+                                                                )
+                                                            }?.let(database::insertSongPlaylistMaps)
+                                                    }
+                                                    syncSucceeded = true
+                                                }
+                                            } finally {
+                                                isSyncing = false
+                                                snackbarHostState.showSnackbar(
+                                                    if (syncSucceeded) syncedMessage else syncFailedMessage
+                                                )
                                             }
-                                        } finally {
-                                            isSyncing = false
                                         }
                                     }
-                                }
-                            },
-                            icon = Icons.Outlined.Sync,
-                            enabled = !isSyncing,
-                            inTopBar = true
-                        )
+                                },
+                                icon = Icons.Outlined.Sync,
+                                inTopBar = true
+                            )
+                        }
                     }
 
                     TooltipIconButton(

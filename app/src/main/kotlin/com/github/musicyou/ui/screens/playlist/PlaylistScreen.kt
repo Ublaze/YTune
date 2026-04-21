@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.LibraryAdd
+import androidx.compose.material.icons.outlined.LibraryAddCheck
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -19,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,11 +53,17 @@ fun PlaylistScreen(
     browseId: String,
     pop: () -> Unit,
     onGoToAlbum: (String) -> Unit,
-    onGoToArtist: (String) -> Unit
+    onGoToArtist: (String) -> Unit,
+    onGoToLocalPlaylist: (Long) -> Unit = {}
 ) {
     var playlistPage: Innertube.PlaylistOrAlbumPage? by remember { mutableStateOf(null) }
     var isImportingPlaylist by rememberSaveable { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    // Observe whether this YTM playlist is already in the local library
+    val localPlaylist by remember(browseId) {
+        database.playlistByBrowseId(browseId)
+    }.collectAsState(initial = null)
 
     LaunchedEffect(browseId) {
         playlistPage = null
@@ -104,12 +112,24 @@ fun PlaylistScreen(
                 actions = {
                     val context = LocalContext.current
 
-                    TooltipIconButton(
-                        description = R.string.import_playlist,
-                        onClick = { isImportingPlaylist = true },
-                        icon = Icons.Outlined.LibraryAdd,
-                        inTopBar = true
-                    )
+                    if (localPlaylist != null) {
+                        // Already imported — navigate directly to the local playlist
+                        TooltipIconButton(
+                            description = R.string.open_in_library,
+                            onClick = {
+                                localPlaylist?.id?.let { onGoToLocalPlaylist(it) }
+                            },
+                            icon = Icons.Outlined.LibraryAddCheck,
+                            inTopBar = true
+                        )
+                    } else {
+                        TooltipIconButton(
+                            description = R.string.import_playlist,
+                            onClick = { isImportingPlaylist = true },
+                            icon = Icons.Outlined.LibraryAdd,
+                            inTopBar = true
+                        )
+                    }
 
                     TooltipIconButton(
                         description = R.string.share,

@@ -31,10 +31,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.DownloadForOffline
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -96,7 +99,8 @@ fun QuickPicks(
     onAlbumClick: (String) -> Unit,
     onArtistClick: (String) -> Unit,
     onPlaylistClick: (String) -> Unit,
-    onOfflinePlaylistClick: () -> Unit
+    onOfflinePlaylistClick: () -> Unit,
+    onLoginClick: () -> Unit = {}
 ) {
     val binder = LocalPlayerServiceBinder.current
     val menuState = LocalMenuState.current
@@ -120,7 +124,7 @@ fun QuickPicks(
 
     LaunchedEffect(Innertube.isLoggedIn) {
         if (Innertube.isLoggedIn) {
-            viewModel.loadPersonalizedHome()
+            viewModel.loadPersonalizedHome(forceRefresh = true)
         }
     }
 
@@ -155,7 +159,53 @@ fun QuickPicks(
                     .padding(top = 4.dp, bottom = 16.dp + playerPadding)
             ) {
                 // Personalized sections from YouTube Music (when logged in)
-                if (viewModel.homeSections.isNotEmpty()) {
+                if (viewModel.homeSectionsLoading) {
+                    ShimmerHost(modifier = sectionTextModifier) {
+                        TextPlaceholder()
+                        Row(
+                            modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            repeat(3) {
+                                ItemPlaceholder(modifier = Modifier.widthIn(max = homeCardSize))
+                            }
+                        }
+                    }
+                } else if (!Innertube.isLoggedIn && viewModel.homeSections.isEmpty()) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .clickable(onClick = onLoginClick),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.AccountCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Column {
+                                Text(
+                                    text = stringResource(id = R.string.sign_in_for_recommendations),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = stringResource(id = R.string.sign_in),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                } else if (viewModel.homeSections.isNotEmpty()) {
                     viewModel.homeSections.forEach { section ->
                         Text(
                             text = section.title,

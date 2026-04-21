@@ -40,6 +40,7 @@ import com.github.musicyou.utils.rememberPreference
 import com.github.musicyou.utils.ytmAccountEmailKey
 import com.github.musicyou.utils.ytmAccountNameKey
 import com.github.musicyou.utils.ytmAccountPhotoKey
+import com.github.musicyou.utils.ytmAccountHandleKey
 import com.github.musicyou.utils.ytmCookieKey
 import com.github.musicyou.utils.ytmVisitorDataKey
 import androidx.core.content.edit
@@ -140,6 +141,9 @@ fun Navigation(
                 },
                 onOfflinePlaylistClick = {
                     navController.navigate(route = Routes.BuiltInPlaylist(index = 1))
+                },
+                onLoginClick = {
+                    navController.navigate(route = Routes.Login)
                 }
             )
         }
@@ -181,6 +185,9 @@ fun Navigation(
                 },
                 onYtmPlaylistClick = { browseId ->
                     navController.navigate(route = Routes.Playlist(id = browseId))
+                },
+                onLoginClick = {
+                    navController.navigate(route = Routes.Login)
                 }
             )
         }
@@ -217,7 +224,10 @@ fun Navigation(
                 browseId = route.id,
                 pop = popDestination,
                 onGoToAlbum = navigateToAlbum,
-                onGoToArtist = navigateToArtist
+                onGoToArtist = navigateToArtist,
+                onGoToLocalPlaylist = { id ->
+                    navController.navigate(route = Routes.LocalPlaylist(id = id))
+                }
             )
         }
 
@@ -302,6 +312,7 @@ fun Navigation(
                                     putString(ytmAccountNameKey, account.name)
                                     putString(ytmAccountEmailKey, account.email ?: "")
                                     putString(ytmAccountPhotoKey, account.photoUrl ?: "")
+                                    putString(ytmAccountHandleKey, account.channelHandle ?: "")
                                 }
                             }
                         }

@@ -211,4 +211,11 @@
     <string name="connected_to_ytm">Connected to YouTube Music</string>
     <string name="ytm_playlists_synced">Your playlists and personalized recommendations are synced.</string>
     <string name="miniplayer_gestures_description">Enable gestures to skip to the next or previous song from the mini player</string>
+    <string name="ytm_sign_in_playlists_prompt">Sign in to see your YouTube Music playlists</string>
+    <string name="playlist_synced">Playlist synced</string>
+    <string name="playlist_sync_failed">Sync failed</string>
+    <string name="refresh_account_info">Refresh account info</string>
+    <string name="sign_in_for_recommendations">Sign in for personalized recommendations</string>
+    <string name="open_in_library">Open in library</string>
+    <string name="song_count_label">%d songs</string>
 </resources>

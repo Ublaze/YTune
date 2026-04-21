@@ -37,8 +37,8 @@ class QuickPicksViewModel : ViewModel() {
         }
     }
 
-    suspend fun loadPersonalizedHome() {
-        if (homeSections.isNotEmpty() || homeSectionsLoading) return
+    suspend fun loadPersonalizedHome(forceRefresh: Boolean = false) {
+        if ((homeSections.isNotEmpty() || homeSectionsLoading) && !forceRefresh) return
         homeSectionsLoading = true
         Innertube.personalizedHome()?.getOrNull()?.let { sections ->
             homeSections = sections

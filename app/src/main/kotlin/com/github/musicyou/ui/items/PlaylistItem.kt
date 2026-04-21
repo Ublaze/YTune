@@ -3,9 +3,13 @@ package com.github.musicyou.ui.items
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -16,6 +20,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.github.innertube.Innertube
 import com.github.musicyou.R
@@ -76,6 +82,7 @@ fun BuiltInPlaylistItem(
 fun LocalPlaylistItem(
     modifier: Modifier = Modifier,
     playlist: PlaylistPreview,
+    isSynced: Boolean = false,
     onClick: () -> Unit
 ) {
     ItemContainer(
@@ -125,6 +132,26 @@ fun LocalPlaylistItem(
                         modifier = Modifier
                             .align(alignment)
                             .size(thumbnailWidthDp / 2)
+                    )
+                }
+            }
+
+            if (isSynced) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(4.dp),
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    tonalElevation = 2.dp
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Sync,
+                        contentDescription = stringResource(id = R.string.sync_playlist),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier
+                            .padding(2.dp)
+                            .size(12.dp)
                     )
                 }
             }
