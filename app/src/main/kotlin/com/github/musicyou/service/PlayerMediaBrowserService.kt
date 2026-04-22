@@ -228,11 +228,19 @@ class PlayerMediaBrowserService : MediaBrowserService(), ServiceConnection {
     @OptIn(UnstableApi::class)
     private inner class SessionCallback(private val player: Player, private val cache: Cache) :
         MediaSession.Callback() {
-        override fun onPlay() = player.play()
+        override fun onPlay() {
+            if (player.playerError != null) player.prepare()
+            else if (player.playbackState == Player.STATE_ENDED) {
+                player.seekToDefaultPosition(0)
+                player.play()
+            } else player.play()
+        }
         override fun onPause() = player.pause()
         override fun onSkipToPrevious() = player.forceSeekToPrevious()
         override fun onSkipToNext() = player.forceSeekToNext()
         override fun onSeekTo(pos: Long) = player.seekTo(pos)
+        override fun onStop() = player.pause()
+        override fun onRewind() = player.seekToDefaultPosition()
         override fun onSkipToQueueItem(id: Long) = player.seekToDefaultPosition(id.toInt())
 
         @OptIn(UnstableApi::class)
