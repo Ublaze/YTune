@@ -1017,8 +1017,10 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
 
     private fun play() {
         if (player.playerError != null) player.prepare()
-        else if (player.playbackState == Player.STATE_ENDED) player.seekToDefaultPosition(0)
-        else player.play()
+        else if (player.playbackState == Player.STATE_ENDED) {
+            player.seekToDefaultPosition(0)
+            player.play()
+        } else player.play()
     }
 
     private inner class SessionCallback(private val player: Player) : MediaSession.Callback() {
