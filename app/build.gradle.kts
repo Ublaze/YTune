@@ -7,9 +7,11 @@ plugins {
     alias(libs.plugins.kotlin.ksp)
 }
 
+val appVersionOverride: String? = providers.gradleProperty("appVersion").orNull
+
 val gitVersion: Provider<String> = providers.exec {
     commandLine("git", "describe", "--tags", "--abbrev=0")
-}.standardOutput.asText.map { it.trim().removePrefix("v").ifEmpty { "1.0.0" } }
+}.standardOutput.asText.map { appVersionOverride ?: it.trim().removePrefix("v").ifEmpty { "1.0.0" } }
 
 fun versionToCode(version: String): Int {
     val parts = version.split(".").map { it.toIntOrNull() ?: 0 }
