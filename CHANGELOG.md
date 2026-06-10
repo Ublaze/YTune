@@ -4,7 +4,7 @@ All notable changes to YTune will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [2.2.0] - 2026-06-10
 
 ### Fixed
 - Stale stream URLs are no longer replayed from the cache after a playback error, so Retry actually retries (previously a failed song could stay broken until two other songs were played).
@@ -74,6 +74,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - In-app update download and install
 - Auto-versioning from git tags
 
+[2.2.0]: https://github.com/Ublaze/YTune/releases/tag/v2.2.0
 [2.1.0]: https://github.com/Ublaze/YTune/releases/tag/v2.1.0
 [2.0.0]: https://github.com/Ublaze/YTune/releases/tag/v2.0.0
 [1.8.5]: https://github.com/Ublaze/YTune/releases/tag/v1.8.5
