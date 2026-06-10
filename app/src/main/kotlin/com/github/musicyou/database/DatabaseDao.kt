@@ -221,6 +221,9 @@ interface DatabaseDao {
     @Query("SELECT * FROM Playlist WHERE id = :id")
     fun playlist(id: Long): Flow<Playlist?>
 
+    @Query("SELECT * FROM Playlist WHERE browseId = :browseId LIMIT 1")
+    fun playlistByBrowseId(browseId: String): Playlist?
+
     @Transaction
     @Query("SELECT Song.* FROM SongPlaylistMap JOIN Song on Song.id = SongPlaylistMap.songId WHERE playlistId = :id ORDER BY position")
     fun playlistSongs(id: Long): Flow<List<Song>>

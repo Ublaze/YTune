@@ -77,7 +77,6 @@ import com.github.musicyou.models.Event
 import com.github.musicyou.models.Format
 import com.github.musicyou.models.QueuedMediaItem
 import com.github.musicyou.utils.InvincibleService
-import com.github.musicyou.utils.RingBuffer
 import com.github.musicyou.utils.TimerJob
 import com.github.musicyou.utils.YouTubeRadio
 import com.github.musicyou.utils.activityPendingIntent
@@ -127,6 +126,10 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import java.nio.channels.UnresolvedAddressException
 import kotlin.math.roundToInt
 import kotlin.system.exitProcess
 import android.os.Binder as AndroidBinder
@@ -185,6 +188,11 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
     private val binder = Binder()
 
     private var isNotificationStarted = false
+
+    private val resolvedUrlCache = ResolvedUrlCache()
+    private var lastFailedMediaId: String? = null
+    private var consecutiveFailures = 0
+    private var consecutiveAutoSkips = 0
 
     override val notificationId: Int
         get() = NOTIFICATION_ID
@@ -444,6 +452,59 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
     private fun maybeRecoverPlaybackError() {
         if (player.playerError != null) player.prepare()
     }
+
+    override fun onPlaybackStateChanged(playbackState: Int) {
+        if (playbackState == Player.STATE_READY) {
+            lastFailedMediaId = null
+            consecutiveFailures = 0
+            consecutiveAutoSkips = 0
+        }
+    }
+
+    override fun onPlayerError(error: PlaybackException) {
+        // A stale or revoked stream URL must not be replayed from the cache on retry.
+        val mediaId = player.currentMediaItem?.mediaId
+        resolvedUrlCache.invalidate(mediaId)
+
+        // Network loss affects every track: surface the error instead of
+        // skipping through the whole queue.
+        if (mediaId == null || error.isNetworkRelated) return
+
+        if (lastFailedMediaId == mediaId) {
+            consecutiveFailures++
+        } else {
+            lastFailedMediaId = mediaId
+            consecutiveFailures = 1
+        }
+
+        when {
+            // First failure: retry once with the cache cleared so a fresh URL is resolved.
+            consecutiveFailures <= 1 -> player.prepare()
+
+            // Repeated failure on the same track: skip it, but stop after a few
+            // tracks in a row so a systemic failure still surfaces to the user.
+            consecutiveAutoSkips < MAX_CONSECUTIVE_AUTO_SKIPS && player.hasNextMediaItem() -> {
+                consecutiveAutoSkips++
+                player.seekToNextMediaItem()
+                player.prepare()
+                player.play()
+            }
+        }
+    }
+
+    private val Throwable.isNetworkRelated: Boolean
+        get() {
+            var cause: Throwable? = this
+            while (cause != null) {
+                if (cause is UnknownHostException ||
+                    cause is UnresolvedAddressException ||
+                    cause is SocketTimeoutException ||
+                    cause is ConnectException
+                ) return true
+                cause = cause.cause
+            }
+            return false
+        }
 
     private fun maybeProcessRadio() {
         radio?.let { radio ->
@@ -813,7 +874,6 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
 
     private fun createDataSourceFactory(): DataSource.Factory {
         val chunkLength = 512 * 1024L
-        val ringBuffer = RingBuffer<Pair<String, Uri>?>(2) { null }
 
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
             val videoId = dataSpec.key ?: error("A key must be set")
@@ -821,9 +881,10 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
             if (cache.isCached(videoId, dataSpec.position, chunkLength)) {
                 dataSpec
             } else {
-                when (videoId) {
-                    ringBuffer.getOrNull(0)?.first -> dataSpec.withUri(ringBuffer.getOrNull(0)!!.second)
-                    ringBuffer.getOrNull(1)?.first -> dataSpec.withUri(ringBuffer.getOrNull(1)!!.second)
+                val cachedUri = resolvedUrlCache.get(videoId)
+
+                when {
+                    cachedUri != null -> dataSpec.withUri(cachedUri)
                     else -> {
                         val urlResult = runBlocking(Dispatchers.IO) {
                             Innertube.player(videoId = videoId)
@@ -880,7 +941,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
                         }
 
                         urlResult?.getOrThrow()?.let { url ->
-                            ringBuffer.append(videoId to url.toUri())
+                            resolvedUrlCache.put(videoId, url.toUri())
                             dataSpec.withUri(url.toUri())
                                 .subrange(dataSpec.uriPositionOffset, chunkLength)
                         } ?: throw PlaybackException(
@@ -1085,5 +1146,49 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
         const val SLEEP_TIMER_NOTIFICATION_CHANNEL_ID = "sleep_timer_channel_id"
 
         const val FAVORITE_ACTION = "FAVORITE"
+
+        const val MAX_CONSECUTIVE_AUTO_SKIPS = 3
+    }
+}
+
+/**
+ * Cache of resolved googlevideo stream URLs. The URLs expire (the `expire`
+ * query parameter) and are revoked when stale, so entries are dropped on
+ * expiry or explicitly via [invalidate] when playback of a track fails —
+ * otherwise a retry would replay the same dead URL.
+ */
+private class ResolvedUrlCache(private val maxSize: Int = 4) {
+    private val entries = LinkedHashMap<String, Pair<Uri, Long>>()
+
+    @Synchronized
+    fun get(videoId: String): Uri? {
+        val (uri, expiresAtMs) = entries[videoId] ?: return null
+        if (System.currentTimeMillis() >= expiresAtMs) {
+            entries.remove(videoId)
+            return null
+        }
+        return uri
+    }
+
+    @Synchronized
+    fun put(videoId: String, uri: Uri) {
+        entries.remove(videoId)
+        if (entries.size >= maxSize) entries.remove(entries.keys.first())
+        entries[videoId] = uri to expiresAtMs(uri)
+    }
+
+    @Synchronized
+    fun invalidate(videoId: String?) {
+        videoId?.let(entries::remove)
+    }
+
+    private fun expiresAtMs(uri: Uri): Long {
+        val expire = runCatching {
+            uri.getQueryParameter("expire")?.toLongOrNull()
+        }.getOrNull()
+
+        // 5-minute safety margin; default to 1 hour when the URL carries no expiry.
+        return if (expire != null) expire * 1000 - 5 * 60_000L
+        else System.currentTimeMillis() + 60 * 60_000L
     }
 }

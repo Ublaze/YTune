@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Login
 import androidx.compose.material.icons.outlined.Logout
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -26,8 +27,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.github.innertube.Innertube
 import com.github.musicyou.R
+import com.github.musicyou.utils.clearYtmPlaylistsCache
 import com.github.musicyou.utils.preferences
 import com.github.musicyou.utils.rememberPreference
 import com.github.musicyou.utils.ytmAccountEmailKey
@@ -56,8 +61,41 @@ fun AccountSettings(
     var accountEmail by rememberPreference(ytmAccountEmailKey, "")
     var accountPhoto by rememberPreference(ytmAccountPhotoKey, "")
     var cookie by rememberPreference(ytmCookieKey, "")
+    var isConfirmingSignOut by remember { mutableStateOf(false) }
 
     val isLoggedIn = cookie.isNotBlank()
+
+    if (isConfirmingSignOut) {
+        AlertDialog(
+            onDismissRequest = { isConfirmingSignOut = false },
+            title = { Text(text = stringResource(id = R.string.sign_out_confirm_title)) },
+            text = { Text(text = stringResource(id = R.string.sign_out_confirm_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        isConfirmingSignOut = false
+                        cookie = ""
+                        accountName = ""
+                        accountEmail = ""
+                        accountPhoto = ""
+                        Innertube.cookie = null
+                        context.preferences.edit {
+                            remove(ytmAccountPhotoKey)
+                        }
+                        context.clearYtmPlaylistsCache()
+                        CookieManager.getInstance().removeAllCookies(null)
+                    }
+                ) {
+                    Text(text = stringResource(id = R.string.sign_out))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isConfirmingSignOut = false }) {
+                    Text(text = stringResource(id = R.string.cancel))
+                }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -141,17 +179,7 @@ fun AccountSettings(
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedButton(
-                onClick = {
-                    cookie = ""
-                    accountName = ""
-                    accountEmail = ""
-                    accountPhoto = ""
-                    Innertube.cookie = null
-                    context.preferences.edit {
-                        remove(ytmAccountPhotoKey)
-                    }
-                    CookieManager.getInstance().removeAllCookies(null)
-                },
+                onClick = { isConfirmingSignOut = true },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
