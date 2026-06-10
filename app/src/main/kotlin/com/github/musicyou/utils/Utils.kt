@@ -78,10 +78,23 @@ val Song.asMediaItem: MediaItem
         .setCustomCacheKey(id)
         .build()
 
+// Stored thumbnail URLs are usually the smallest variant YouTube offers, so
+// rendering depends on rewriting them to the requested size. Google-hosted
+// images re-render server-side at any size; i.ytimg.com video thumbs only
+// exist in fixed variants, so upgrade to hqdefault (480px, always available).
 fun String?.thumbnail(size: Int): String? {
     return when {
-        this?.startsWith("https://lh3.googleusercontent.com") == true -> "$this-w$size-h$size"
-        this?.startsWith("https://yt3.ggpht.com") == true -> "$this-w$size-h$size-s$size"
+        this == null -> null
+
+        startsWith("https://lh3.googleusercontent.com") ||
+                startsWith("https://yt3.ggpht.com") ->
+            "${substringBeforeLast('=')}=w$size-h$size-l90-rj"
+
+        startsWith("https://i.ytimg.com/vi/") -> {
+            val videoId = substringAfter("/vi/").substringBefore('/')
+            "https://i.ytimg.com/vi/$videoId/hqdefault.jpg"
+        }
+
         else -> this
     }
 }

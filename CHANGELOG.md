@@ -4,6 +4,14 @@ All notable changes to YTune will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.2.1] - 2026-06-10
+
+### Fixed
+- Songs no longer cut out after ~30–50 seconds: stream downloads now identify with the same client user agent that requested the stream URL (googlevideo started rejecting follow-up chunk requests on a UA mismatch).
+- Read timeouts on a stream are now retried with a freshly resolved URL instead of being treated as network loss.
+- A failing track now gets two fresh-URL retries before being skipped.
+- Album art and thumbnails are no longer blurry: Google-hosted images are re-requested at display size (the stored URL is the smallest variant), and video thumbnails are upgraded from the tiny default to hqdefault.
+
 ## [2.2.0] - 2026-06-10
 
 ### Fixed
@@ -74,6 +82,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - In-app update download and install
 - Auto-versioning from git tags
 
+[2.2.1]: https://github.com/Ublaze/YTune/releases/tag/v2.2.1
 [2.2.0]: https://github.com/Ublaze/YTune/releases/tag/v2.2.0
 [2.1.0]: https://github.com/Ublaze/YTune/releases/tag/v2.1.0
 [2.0.0]: https://github.com/Ublaze/YTune/releases/tag/v2.0.0

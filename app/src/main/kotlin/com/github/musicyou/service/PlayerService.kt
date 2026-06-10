@@ -44,6 +44,7 @@ import androidx.media3.common.Timeline
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.Cache
@@ -68,6 +69,7 @@ import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.extractor.DefaultExtractorsFactory
 import com.github.innertube.Innertube
 import com.github.innertube.models.NavigationEndpoint
+import com.github.innertube.models.YouTubeClient
 import com.github.innertube.requests.player
 import com.github.musicyou.MainActivity
 import com.github.musicyou.R
@@ -127,7 +129,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.net.ConnectException
-import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.nio.channels.UnresolvedAddressException
 import kotlin.math.roundToInt
@@ -478,8 +479,8 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
         }
 
         when {
-            // First failure: retry once with the cache cleared so a fresh URL is resolved.
-            consecutiveFailures <= 1 -> player.prepare()
+            // First failures: retry with the cache cleared so a fresh URL is resolved.
+            consecutiveFailures <= 2 -> player.prepare()
 
             // Repeated failure on the same track: skip it, but stop after a few
             // tracks in a row so a systemic failure still surfaces to the user.
@@ -492,13 +493,15 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
         }
     }
 
+    // Only true connectivity loss counts: a read timeout or reset usually means
+    // the CDN stalled that one connection (stale/throttled URL) and a retry
+    // with a freshly resolved URL is the right response.
     private val Throwable.isNetworkRelated: Boolean
         get() {
             var cause: Throwable? = this
             while (cause != null) {
                 if (cause is UnknownHostException ||
                     cause is UnresolvedAddressException ||
-                    cause is SocketTimeoutException ||
                     cause is ConnectException
                 ) return true
                 cause = cause.cause
@@ -867,7 +870,14 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
                 DefaultHttpDataSource.Factory()
                     .setConnectTimeoutMs(16000)
                     .setReadTimeoutMs(8000)
-                    .setUserAgent("Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0")
+                    // googlevideo enforces UA consistency with the client that
+                    // requested the stream URL. The resolver overrides this per
+                    // request via dataSpec headers; this is only the backstop.
+                    // (setUserAgent would win over dataSpec headers, so the
+                    // default must go through request properties instead.)
+                    .setDefaultRequestProperties(
+                        mapOf("User-Agent" to YouTubeClient.ANDROID_VR.userAgent)
+                    )
             )
         }
     }
@@ -881,10 +891,13 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
             if (cache.isCached(videoId, dataSpec.position, chunkLength)) {
                 dataSpec
             } else {
-                val cachedUri = resolvedUrlCache.get(videoId)
+                val cachedEntry = resolvedUrlCache.get(videoId)
 
                 when {
-                    cachedUri != null -> dataSpec.withUri(cachedUri)
+                    cachedEntry != null -> dataSpec
+                        .withUri(cachedEntry.first)
+                        .withUserAgent(cachedEntry.second)
+
                     else -> {
                         val urlResult = runBlocking(Dispatchers.IO) {
                             Innertube.player(videoId = videoId)
@@ -927,7 +940,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
                                         )
                                     }
 
-                                    format.url
+                                    format.url?.let { it to body.clientUserAgent }
                                 } ?: throw PlayableFormatNotFoundException()
 
                                 "UNPLAYABLE" -> throw UnplayableException()
@@ -940,10 +953,13 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
                             }
                         }
 
-                        urlResult?.getOrThrow()?.let { url ->
-                            resolvedUrlCache.put(videoId, url.toUri())
+                        urlResult?.getOrThrow()?.let { (url, clientUserAgent) ->
+                            val userAgent =
+                                clientUserAgent ?: YouTubeClient.ANDROID_VR.userAgent
+                            resolvedUrlCache.put(videoId, url.toUri(), userAgent)
                             dataSpec.withUri(url.toUri())
                                 .subrange(dataSpec.uriPositionOffset, chunkLength)
+                                .withUserAgent(userAgent)
                         } ?: throw PlaybackException(
                             null,
                             urlResult?.exceptionOrNull(),
@@ -1155,26 +1171,30 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
  * Cache of resolved googlevideo stream URLs. The URLs expire (the `expire`
  * query parameter) and are revoked when stale, so entries are dropped on
  * expiry or explicitly via [invalidate] when playback of a track fails —
- * otherwise a retry would replay the same dead URL.
+ * otherwise a retry would replay the same dead URL. Each entry carries the
+ * user agent of the client that requested the URL, because googlevideo
+ * enforces UA consistency on the download requests.
  */
 private class ResolvedUrlCache(private val maxSize: Int = 4) {
-    private val entries = LinkedHashMap<String, Pair<Uri, Long>>()
+    private data class Entry(val uri: Uri, val userAgent: String, val expiresAtMs: Long)
+
+    private val entries = LinkedHashMap<String, Entry>()
 
     @Synchronized
-    fun get(videoId: String): Uri? {
-        val (uri, expiresAtMs) = entries[videoId] ?: return null
-        if (System.currentTimeMillis() >= expiresAtMs) {
+    fun get(videoId: String): Pair<Uri, String>? {
+        val entry = entries[videoId] ?: return null
+        if (System.currentTimeMillis() >= entry.expiresAtMs) {
             entries.remove(videoId)
             return null
         }
-        return uri
+        return entry.uri to entry.userAgent
     }
 
     @Synchronized
-    fun put(videoId: String, uri: Uri) {
+    fun put(videoId: String, uri: Uri, userAgent: String) {
         entries.remove(videoId)
         if (entries.size >= maxSize) entries.remove(entries.keys.first())
-        entries[videoId] = uri to expiresAtMs(uri)
+        entries[videoId] = Entry(uri, userAgent, expiresAtMs(uri))
     }
 
     @Synchronized
@@ -1192,3 +1212,11 @@ private class ResolvedUrlCache(private val maxSize: Int = 4) {
         else System.currentTimeMillis() + 60 * 60_000L
     }
 }
+
+// dataSpec.httpRequestHeaders override the factory's default request
+// properties, letting each stream identify as the client that resolved it.
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+private fun DataSpec.withUserAgent(userAgent: String): DataSpec =
+    buildUpon()
+        .setHttpRequestHeaders(httpRequestHeaders + ("User-Agent" to userAgent))
+        .build()
