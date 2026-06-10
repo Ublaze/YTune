@@ -45,20 +45,23 @@ suspend fun Innertube.player(videoId: String) = runCatchingNonCancellable {
     // All requests go through playerClient (anonymous, no cookie/auth headers):
     // these native clients reject cookie-based auth, and keeping the player
     // path unauthenticated also avoids leaking YouTube cookies to Piped.
-    val contexts = listOf(
-        YouTubeClient.ANDROID_VR.toContext(visitorData = visitorData),
-        YouTubeClient.IOS.toContext(visitorData = visitorData),
-        YouTubeClient.TVHTML5_SIMPLY_EMBEDDED_PLAYER.toContext().copy(
-            thirdParty = Context.ThirdParty(
-                embedUrl = "https://www.youtube.com/watch?v=$videoId"
-            )
-        )
+    val attempts = listOf(
+        YouTubeClient.ANDROID_VR to
+                YouTubeClient.ANDROID_VR.toContext(visitorData = visitorData),
+        YouTubeClient.IOS to
+                YouTubeClient.IOS.toContext(visitorData = visitorData),
+        YouTubeClient.TVHTML5_SIMPLY_EMBEDDED_PLAYER to
+                YouTubeClient.TVHTML5_SIMPLY_EMBEDDED_PLAYER.toContext().copy(
+                    thirdParty = Context.ThirdParty(
+                        embedUrl = "https://www.youtube.com/watch?v=$videoId"
+                    )
+                )
     )
 
     var bestResponse: PlayerResponse? = null
     var lastError: Throwable? = null
 
-    for (context in contexts) {
+    for ((client, context) in attempts) {
         val response = runCatching {
             playerClient.post(PLAYER) {
                 setBody(PlayerBody(context = context, videoId = videoId))
@@ -67,7 +70,7 @@ suspend fun Innertube.player(videoId: String) = runCatchingNonCancellable {
         }.getOrElse { error ->
             lastError = error
             null
-        } ?: continue
+        }?.copy(clientUserAgent = client.userAgent) ?: continue
 
         if (response.hasPlayableUrl) return@runCatchingNonCancellable response
 

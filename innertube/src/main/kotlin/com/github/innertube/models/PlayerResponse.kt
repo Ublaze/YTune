@@ -1,6 +1,7 @@
 package com.github.innertube.models
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 @Serializable
 data class PlayerResponse(
@@ -8,6 +9,11 @@ data class PlayerResponse(
     val playerConfig: PlayerConfig?,
     val streamingData: StreamingData?,
     val videoDetails: VideoDetails?,
+    // User agent of the client that produced this response. googlevideo
+    // enforces UA consistency on stream downloads, so the player must fetch
+    // the stream with the same UA that requested the URL.
+    @Transient
+    val clientUserAgent: String? = null,
 ) {
     @Serializable
     data class PlayabilityStatus(
