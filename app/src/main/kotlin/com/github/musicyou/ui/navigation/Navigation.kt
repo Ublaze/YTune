@@ -181,6 +181,9 @@ fun Navigation(
                 },
                 onYtmPlaylistClick = { browseId ->
                     navController.navigate(route = Routes.Playlist(id = browseId))
+                },
+                onLoginClick = {
+                    navController.navigate(route = Routes.Login)
                 }
             )
         }

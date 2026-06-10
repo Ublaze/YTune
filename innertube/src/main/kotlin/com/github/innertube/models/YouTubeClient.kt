@@ -44,6 +44,15 @@ class YouTubeClient(
             osVersion = "12L"
         )
 
+        val IOS = YouTubeClient(
+            clientName = "IOS",
+            clientVersion = "20.10.4",
+            clientId = "5",
+            userAgent = "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)",
+            platform = "MOBILE",
+            osVersion = "18.3.2.22D82"
+        )
+
         val TVHTML5_SIMPLY_EMBEDDED_PLAYER = YouTubeClient(
             clientName = "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
             clientVersion = "2.0",

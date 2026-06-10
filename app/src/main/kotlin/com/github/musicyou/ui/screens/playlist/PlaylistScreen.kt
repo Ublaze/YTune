@@ -33,6 +33,7 @@ import com.github.innertube.Innertube
 import com.github.innertube.requests.playlistPage
 import com.github.innertube.requests.playlistPageContinuation
 import com.github.innertube.utils.plus
+import com.github.musicyou.LocalPlayerServiceBinder
 import com.github.musicyou.R
 import com.github.musicyou.database
 import com.github.musicyou.models.Playlist
@@ -40,6 +41,7 @@ import com.github.musicyou.models.SongPlaylistMap
 import com.github.musicyou.ui.components.TextFieldDialog
 import com.github.musicyou.ui.components.TooltipIconButton
 import com.github.musicyou.utils.asMediaItem
+import com.github.musicyou.utils.enqueue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -53,9 +55,16 @@ fun PlaylistScreen(
     onGoToAlbum: (String) -> Unit,
     onGoToArtist: (String) -> Unit
 ) {
+    val binder = LocalPlayerServiceBinder.current
+
     var playlistPage: Innertube.PlaylistOrAlbumPage? by remember { mutableStateOf(null) }
     var isImportingPlaylist by rememberSaveable { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    // Number of songs already handed to the player queue, or null when the
+    // user hasn't started playback from this playlist. Continuation pages
+    // loaded after playback starts are appended to the live queue below.
+    var queuedSongCount: Int? by remember(browseId) { mutableStateOf(null) }
 
     LaunchedEffect(browseId) {
         playlistPage = null
@@ -74,6 +83,16 @@ fun PlaylistScreen(
 
             playlistPage = playlistPage?.let { currentPage ->
                 currentPage.copy(songsPage = currentPage.songsPage + nextPage)
+            }
+
+            queuedSongCount?.let { queued ->
+                val items = playlistPage?.songsPage?.items.orEmpty()
+                if (items.size > queued) {
+                    binder?.player?.enqueue(
+                        items.drop(queued).map(Innertube.SongItem::asMediaItem)
+                    )
+                    queuedSongCount = items.size
+                }
             }
 
             val nextContinuation = nextPage.continuation
@@ -149,6 +168,8 @@ fun PlaylistScreen(
         ) {
             PlaylistSongList(
                 playlistPage = playlistPage,
+                isLoadingMore = playlistPage?.songsPage?.continuation != null,
+                onPlaybackStarted = { snapshotSize -> queuedSongCount = snapshotSize },
                 onGoToAlbum = onGoToAlbum,
                 onGoToArtist = onGoToArtist
             )
@@ -162,7 +183,13 @@ fun PlaylistScreen(
                     onDone = { text ->
                         database.query {
                             database.transaction {
-                                val playlistId = database.insert(
+                                // Re-importing an already imported playlist refreshes
+                                // it in place instead of creating a duplicate.
+                                val existingPlaylist = database.playlistByBrowseId(browseId)
+
+                                val playlistId = existingPlaylist?.id?.also {
+                                    database.clearPlaylist(it)
+                                } ?: database.insert(
                                     Playlist(
                                         name = text,
                                         browseId = browseId

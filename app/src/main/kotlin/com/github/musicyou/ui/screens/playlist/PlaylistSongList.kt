@@ -2,18 +2,27 @@ package com.github.musicyou.ui.screens.playlist
 
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.PlaylistPlay
 import androidx.compose.material.icons.outlined.Shuffle
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.github.innertube.Innertube
 import com.github.musicyou.LocalPlayerPadding
@@ -38,6 +47,8 @@ import com.github.musicyou.utils.forcePlayFromBeginning
 @Composable
 fun PlaylistSongList(
     playlistPage: Innertube.PlaylistOrAlbumPage?,
+    isLoadingMore: Boolean = false,
+    onPlaybackStarted: (queuedCount: Int) -> Unit = {},
     onGoToAlbum: (String) -> Unit,
     onGoToArtist: (String) -> Unit
 ) {
@@ -63,6 +74,7 @@ fun PlaylistSongList(
                                 binder?.player?.forcePlayFromBeginning(
                                     songs.shuffled().map(Innertube.SongItem::asMediaItem)
                                 )
+                                onPlaybackStarted(songs.size)
                             }
                         }
                     },
@@ -74,6 +86,7 @@ fun PlaylistSongList(
                         playlistPage?.songsPage?.items?.map(Innertube.SongItem::asMediaItem)
                             ?.let { mediaItems ->
                                 binder?.player?.enqueue(mediaItems)
+                                onPlaybackStarted(mediaItems.size)
                             }
                     },
                     icon = Icons.AutoMirrored.Outlined.PlaylistPlay,
@@ -81,6 +94,41 @@ fun PlaylistSongList(
                 ),
                 content = thumbnailContent
             )
+        }
+
+        item(key = "songCount") {
+            val songCount = playlistPage?.songsPage?.items?.size
+
+            if (songCount != null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    Text(
+                        text = pluralStringResource(
+                            id = R.plurals.number_of_songs,
+                            count = songCount,
+                            songCount
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    if (isLoadingMore) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp),
+                            strokeWidth = 2.dp
+                        )
+
+                        Text(
+                            text = stringResource(id = R.string.loading_more_songs),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
         }
 
         item(key = "spacer") {
@@ -102,6 +150,7 @@ fun PlaylistSongList(
                             ?.let { mediaItems ->
                                 binder?.stopRadio()
                                 binder?.player?.forcePlayAtIndex(mediaItems, index)
+                                onPlaybackStarted(mediaItems.size)
                             }
                     },
                     onLongClick = {

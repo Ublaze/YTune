@@ -205,4 +205,9 @@
     <string name="signed_in_description">Your YouTube Music playlists are now available in the Playlists tab.</string>
     <string name="youtube_music_playlists">YouTube Music</string>
     <string name="for_you">For you</string>
+    <string name="loading_more_songs">Loading more…</string>
+    <string name="liked_songs">Liked Songs</string>
+    <string name="session_expired">Your YouTube Music session has expired. Sign in again to keep your playlists in sync.</string>
+    <string name="sign_out_confirm_title">Sign out?</string>
+    <string name="sign_out_confirm_message">Your YouTube Music playlists and recommendations will no longer be available.</string>
 </resources>

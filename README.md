@@ -69,7 +69,7 @@ Stream your favorite music straight from YouTube Music -- with background playba
 | Sleep timer | Yes | - | Yes | - |
 | Audio normalization | Yes | - | Yes | - |
 | Skip silence | Yes | - | Yes | - |
-| Multilingual | 5 langs | Yes | Yes | Yes |
+| Multilingual | 6 langs | Yes | Yes | Yes |
 | Open source | GPL-3.0 | GPL-3.0 | GPL-3.0 | GPL-3.0 |
 
 ## Features
@@ -136,6 +136,7 @@ The APK will be in `app/build/outputs/apk/debug/`.
 - German
 - French
 - Italian
+- Russian
 
 Want to help translate? Contributions are always welcome.
 

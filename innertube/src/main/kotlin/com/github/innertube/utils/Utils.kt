@@ -1,8 +1,15 @@
 package com.github.innertube.utils
 
+import io.ktor.client.plugins.ClientRequestException
 import io.ktor.utils.io.CancellationException
 import com.github.innertube.Innertube
 import com.github.innertube.models.SectionListRenderer
+
+// The app module doesn't see Ktor types (implementation dependency), so expose
+// auth-failure detection here for session-expiry handling.
+val Throwable.isUnauthorized: Boolean
+    get() = this is ClientRequestException &&
+            response.status.value.let { it == 401 || it == 403 }
 
 internal fun SectionListRenderer.findSectionByTitle(text: String): SectionListRenderer.Content? {
     return contents?.find { content ->

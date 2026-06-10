@@ -105,6 +105,10 @@ suspend fun Result<Innertube.PlaylistOrAlbumPage>.completed(): Result<Innertube.
         otherPlaylistPageResult.getOrNull()?.let { otherSongsPage ->
             playlistPage = playlistPage.copy(songsPage = playlistPage.songsPage + otherSongsPage)
         }
+
+        // YouTube occasionally echoes the same continuation token back,
+        // which would otherwise loop forever.
+        if (playlistPage.songsPage?.continuation == continuation) break
     }
 
     return Result.success(playlistPage)

@@ -160,7 +160,7 @@ fun About() {
     if (isShowingDialog) {
         LaunchedEffect(Unit) {
             val release = GitHub.getLastestRelease()
-            latestVersion = release?.name
+            latestVersion = release?.version
             apkDownloadUrl = release?.apkDownloadUrl
             latestVersion?.let {
                 newVersionAvailable = compareVersions(it, currentVersion) > 0
