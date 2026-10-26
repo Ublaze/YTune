@@ -69,7 +69,6 @@ import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.extractor.DefaultExtractorsFactory
 import com.github.innertube.Innertube
 import com.github.innertube.models.NavigationEndpoint
-import com.github.innertube.models.YouTubeClient
 import com.github.innertube.requests.player
 import com.github.musicyou.MainActivity
 import com.github.musicyou.R
@@ -78,10 +77,12 @@ import com.github.musicyou.enums.ExoPlayerDiskCacheMaxSize
 import com.github.musicyou.models.Event
 import com.github.musicyou.models.Format
 import com.github.musicyou.models.QueuedMediaItem
+import com.github.musicyou.models.Song
 import com.github.musicyou.utils.InvincibleService
 import com.github.musicyou.utils.TimerJob
 import com.github.musicyou.utils.YouTubeRadio
 import com.github.musicyou.utils.activityPendingIntent
+import com.github.musicyou.utils.asMediaItem
 import com.github.musicyou.utils.broadCastPendingIntent
 import com.github.musicyou.utils.exoPlayerDiskCacheMaxSizeKey
 import com.github.musicyou.utils.findNextMediaItemById
@@ -109,6 +110,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -116,6 +118,7 @@ import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -128,11 +131,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.net.ConnectException
-import java.net.UnknownHostException
-import java.nio.channels.UnresolvedAddressException
 import kotlin.math.roundToInt
-import kotlin.system.exitProcess
 import android.os.Binder as AndroidBinder
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
@@ -191,9 +190,6 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
     private var isNotificationStarted = false
 
     private val resolvedUrlCache = ResolvedUrlCache()
-    private var lastFailedMediaId: String? = null
-    private var consecutiveFailures = 0
-    private var consecutiveAutoSkips = 0
 
     override val notificationId: Int
         get() = NOTIFICATION_ID
@@ -333,8 +329,11 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
 
     override fun onDestroy() {
         maybeSavePlayerQueue()
+        coroutineScope.cancel()
 
         preferences.unregisterOnSharedPreferenceChangeListener(this)
+        audioDeviceCallback?.let { audioManager?.unregisterAudioDeviceCallback(it) }
+        audioDeviceCallback = null
 
         player.removeListener(this)
         player.stop()
@@ -454,60 +453,9 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
         if (player.playerError != null) player.prepare()
     }
 
-    override fun onPlaybackStateChanged(playbackState: Int) {
-        if (playbackState == Player.STATE_READY) {
-            lastFailedMediaId = null
-            consecutiveFailures = 0
-            consecutiveAutoSkips = 0
-        }
-    }
-
     override fun onPlayerError(error: PlaybackException) {
-        // A stale or revoked stream URL must not be replayed from the cache on retry.
-        val mediaId = player.currentMediaItem?.mediaId
-        resolvedUrlCache.invalidate(mediaId)
-
-        // Network loss affects every track: surface the error instead of
-        // skipping through the whole queue.
-        if (mediaId == null || error.isNetworkRelated) return
-
-        if (lastFailedMediaId == mediaId) {
-            consecutiveFailures++
-        } else {
-            lastFailedMediaId = mediaId
-            consecutiveFailures = 1
-        }
-
-        when {
-            // First failures: retry with the cache cleared so a fresh URL is resolved.
-            consecutiveFailures <= 2 -> player.prepare()
-
-            // Repeated failure on the same track: skip it, but stop after a few
-            // tracks in a row so a systemic failure still surfaces to the user.
-            consecutiveAutoSkips < MAX_CONSECUTIVE_AUTO_SKIPS && player.hasNextMediaItem() -> {
-                consecutiveAutoSkips++
-                player.seekToNextMediaItem()
-                player.prepare()
-                player.play()
-            }
-        }
+        resolvedUrlCache.invalidate(player.currentMediaItem?.mediaId)
     }
-
-    // Only true connectivity loss counts: a read timeout or reset usually means
-    // the CDN stalled that one connection (stale/throttled URL) and a retry
-    // with a freshly resolved URL is the right response.
-    private val Throwable.isNetworkRelated: Boolean
-        get() {
-            var cause: Throwable? = this
-            while (cause != null) {
-                if (cause is UnknownHostException ||
-                    cause is UnresolvedAddressException ||
-                    cause is ConnectException
-                ) return true
-                cause = cause.cause
-            }
-            return false
-        }
 
     private fun maybeProcessRadio() {
         radio?.let { radio ->
@@ -864,110 +812,100 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
         }
     }
 
-    private fun createCacheDataSource(): DataSource.Factory {
-        return CacheDataSource.Factory().setCache(cache).apply {
-            setUpstreamDataSourceFactory(
-                DefaultHttpDataSource.Factory()
-                    .setConnectTimeoutMs(16000)
-                    .setReadTimeoutMs(8000)
-                    // googlevideo enforces UA consistency with the client that
-                    // requested the stream URL. The resolver overrides this per
-                    // request via dataSpec headers; this is only the backstop.
-                    // (setUserAgent would win over dataSpec headers, so the
-                    // default must go through request properties instead.)
-                    .setDefaultRequestProperties(
-                        mapOf("User-Agent" to YouTubeClient.ANDROID_VR.userAgent)
-                    )
+    private fun createDataSourceFactory(): DataSource.Factory {
+        val httpFactory = DefaultHttpDataSource.Factory()
+            .setConnectTimeoutMs(16_000)
+            .setReadTimeoutMs(30_000)
+            .setAllowCrossProtocolRedirects(true)
+
+        val resolvingFactory = ResolvingDataSource.Factory(httpFactory) { dataSpec ->
+            val videoId = dataSpec.key ?: error("A key must be set")
+            val resolved = resolvedUrlCache.get(videoId) ?: resolveStream(videoId).also {
+                resolvedUrlCache.put(videoId, it.uri, it.userAgent)
+            }
+
+            dataSpec.withUri(resolved.uri)
+                .subrange(dataSpec.uriPositionOffset, STREAM_CHUNK_LENGTH)
+                .withUserAgent(resolved.userAgent)
+        }
+
+        return CacheDataSource.Factory()
+            .setCache(cache)
+            .setUpstreamDataSourceFactory(
+                RecoveringDataSource.Factory(
+                    upstreamFactory = resolvingFactory,
+                    invalidateUrl = resolvedUrlCache::invalidate
+                )
+            )
+    }
+
+    private fun resolveStream(videoId: String): ResolvedStream {
+        val result = runBlocking(Dispatchers.IO) {
+            Innertube.player(videoId = videoId)
+        }
+
+        val body = result?.getOrThrow() ?: throw PlaybackException(
+            null,
+            result?.exceptionOrNull(),
+            PlaybackException.ERROR_CODE_REMOTE_ERROR
+        )
+
+        if (body.videoDetails?.videoId != videoId) throw VideoIdMismatchException()
+
+        when (val status = body.playabilityStatus?.status) {
+            "OK" -> {
+                val format = body.streamingData?.highestQualityFormat
+                    ?: throw PlayableFormatNotFoundException()
+                val url = format.url ?: throw PlayableFormatNotFoundException()
+                updateStreamMetadata(videoId, body, format)
+
+                return ResolvedStream(
+                    uri = url.toUri(),
+                    userAgent = body.clientUserAgent
+                )
+            }
+
+            "UNPLAYABLE" -> throw UnplayableException()
+            "LOGIN_REQUIRED" -> throw LoginRequiredException()
+            else -> throw PlaybackException(
+                status,
+                null,
+                PlaybackException.ERROR_CODE_REMOTE_ERROR
             )
         }
     }
 
-    private fun createDataSourceFactory(): DataSource.Factory {
-        val chunkLength = 512 * 1024L
+    private fun updateStreamMetadata(
+        videoId: String,
+        body: com.github.innertube.models.PlayerResponse,
+        format: com.github.innertube.models.PlayerResponse.StreamingData.AdaptiveFormat
+    ) {
+        val mediaItem = runBlocking(Dispatchers.Main) {
+            player.findNextMediaItemById(videoId)
+        }
 
-        return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
-            val videoId = dataSpec.key ?: error("A key must be set")
-
-            if (cache.isCached(videoId, dataSpec.position, chunkLength)) {
-                dataSpec
-            } else {
-                val cachedEntry = resolvedUrlCache.get(videoId)
-
-                when {
-                    cachedEntry != null -> dataSpec
-                        .withUri(cachedEntry.first)
-                        .withUserAgent(cachedEntry.second)
-
-                    else -> {
-                        val urlResult = runBlocking(Dispatchers.IO) {
-                            Innertube.player(videoId = videoId)
-                        }?.mapCatching { body ->
-                            if (body.videoDetails?.videoId != videoId) {
-                                throw VideoIdMismatchException()
-                            }
-
-                            when (val status = body.playabilityStatus?.status) {
-                                "OK" -> body.streamingData?.highestQualityFormat?.let { format ->
-                                    val mediaItem = runBlocking(Dispatchers.Main) {
-                                        player.findNextMediaItemById(videoId)
-                                    }
-
-                                    if (mediaItem?.mediaMetadata?.extras?.getString("durationText") == null) {
-                                        format.approxDurationMs?.div(1000)
-                                            ?.let(DateUtils::formatElapsedTime)?.removePrefix("0")
-                                            ?.let { durationText ->
-                                                mediaItem?.mediaMetadata?.extras?.putString(
-                                                    "durationText",
-                                                    durationText
-                                                )
-                                                database.updateDurationText(videoId, durationText)
-                                            }
-                                    }
-
-                                    database.query {
-                                        mediaItem?.let(database::insert)
-
-                                        database.insert(
-                                            Format(
-                                                songId = videoId,
-                                                itag = format.itag,
-                                                mimeType = format.mimeType,
-                                                bitrate = format.bitrate,
-                                                loudnessDb = body.playerConfig?.audioConfig?.normalizedLoudnessDb,
-                                                contentLength = format.contentLength,
-                                                lastModified = format.lastModified
-                                            )
-                                        )
-                                    }
-
-                                    format.url?.let { it to body.clientUserAgent }
-                                } ?: throw PlayableFormatNotFoundException()
-
-                                "UNPLAYABLE" -> throw UnplayableException()
-                                "LOGIN_REQUIRED" -> throw LoginRequiredException()
-                                else -> throw PlaybackException(
-                                    status,
-                                    null,
-                                    PlaybackException.ERROR_CODE_REMOTE_ERROR
-                                )
-                            }
-                        }
-
-                        urlResult?.getOrThrow()?.let { (url, clientUserAgent) ->
-                            val userAgent =
-                                clientUserAgent ?: YouTubeClient.ANDROID_VR.userAgent
-                            resolvedUrlCache.put(videoId, url.toUri(), userAgent)
-                            dataSpec.withUri(url.toUri())
-                                .subrange(dataSpec.uriPositionOffset, chunkLength)
-                                .withUserAgent(userAgent)
-                        } ?: throw PlaybackException(
-                            null,
-                            urlResult?.exceptionOrNull(),
-                            PlaybackException.ERROR_CODE_REMOTE_ERROR
-                        )
-                    }
+        if (mediaItem?.mediaMetadata?.extras?.getString("durationText") == null) {
+            format.approxDurationMs?.div(1000)
+                ?.let(DateUtils::formatElapsedTime)?.removePrefix("0")
+                ?.let { durationText ->
+                    mediaItem?.mediaMetadata?.extras?.putString("durationText", durationText)
+                    database.updateDurationText(videoId, durationText)
                 }
-            }
+        }
+
+        database.query {
+            mediaItem?.let(database::insert)
+            database.insert(
+                Format(
+                    songId = videoId,
+                    itag = format.itag,
+                    mimeType = format.mimeType,
+                    bitrate = format.bitrate,
+                    loudnessDb = body.playerConfig?.audioConfig?.normalizedLoudnessDb,
+                    contentLength = format.contentLength,
+                    lastModified = format.lastModified
+                )
+            )
         }
     }
 
@@ -1036,8 +974,8 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
 
                 notificationManager?.notify(SLEEP_TIMER_NOTIFICATION_ID, notification)
 
+                player.pause()
                 stopSelf()
-                exitProcess(0)
             }
         }
 
@@ -1111,6 +1049,21 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
         override fun onSkipToQueueItem(id: Long) =
             runCatching { player.seekToDefaultPosition(id.toInt()) }.let { }
 
+        override fun onPlayFromSearch(query: String?, extras: Bundle?) {
+            val searchQuery = query?.trim().takeUnless { it.isNullOrEmpty() } ?: return
+
+            coroutineScope.launch {
+                val mediaItems = database.search("%$searchQuery%")
+                    .first()
+                    .map(Song::asMediaItem)
+                if (mediaItems.isEmpty()) return@launch
+
+                withContext(Dispatchers.Main) {
+                    player.forcePlayFromBeginning(mediaItems)
+                }
+            }
+        }
+
         override fun onCustomAction(action: String, extras: Bundle?) {
             super.onCustomAction(action, extras)
             if (action == FAVORITE_ACTION) likeAction()
@@ -1163,38 +1116,40 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
 
         const val FAVORITE_ACTION = "FAVORITE"
 
-        const val MAX_CONSECUTIVE_AUTO_SKIPS = 3
+        const val STREAM_CHUNK_LENGTH = 512 * 1024L
     }
 }
 
 /**
- * Cache of resolved googlevideo stream URLs. The URLs expire (the `expire`
- * query parameter) and are revoked when stale, so entries are dropped on
- * expiry or explicitly via [invalidate] when playback of a track fails —
- * otherwise a retry would replay the same dead URL. Each entry carries the
- * user agent of the client that requested the URL, because googlevideo
- * enforces UA consistency on the download requests.
+ * Cache of resolved stream URLs. Each entry retains the user agent only when
+ * the URL came directly from that YouTube client; third-party fallback URLs
+ * use the HTTP client's normal user agent instead.
  */
+private data class ResolvedStream(val uri: Uri, val userAgent: String?)
+
 private class ResolvedUrlCache(private val maxSize: Int = 4) {
-    private data class Entry(val uri: Uri, val userAgent: String, val expiresAtMs: Long)
+    private data class Entry(
+        val stream: ResolvedStream,
+        val expiresAtMs: Long
+    )
 
     private val entries = LinkedHashMap<String, Entry>()
 
     @Synchronized
-    fun get(videoId: String): Pair<Uri, String>? {
+    fun get(videoId: String): ResolvedStream? {
         val entry = entries[videoId] ?: return null
         if (System.currentTimeMillis() >= entry.expiresAtMs) {
             entries.remove(videoId)
             return null
         }
-        return entry.uri to entry.userAgent
+        return entry.stream
     }
 
     @Synchronized
-    fun put(videoId: String, uri: Uri, userAgent: String) {
+    fun put(videoId: String, uri: Uri, userAgent: String?) {
         entries.remove(videoId)
         if (entries.size >= maxSize) entries.remove(entries.keys.first())
-        entries[videoId] = Entry(uri, userAgent, expiresAtMs(uri))
+        entries[videoId] = Entry(ResolvedStream(uri, userAgent), expiresAtMs(uri))
     }
 
     @Synchronized
@@ -1213,10 +1168,10 @@ private class ResolvedUrlCache(private val maxSize: Int = 4) {
     }
 }
 
-// dataSpec.httpRequestHeaders override the factory's default request
-// properties, letting each stream identify as the client that resolved it.
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-private fun DataSpec.withUserAgent(userAgent: String): DataSpec =
-    buildUpon()
+private fun DataSpec.withUserAgent(userAgent: String?): DataSpec {
+    if (userAgent == null) return this
+    return buildUpon()
         .setHttpRequestHeaders(httpRequestHeaders + ("User-Agent" to userAgent))
         .build()
+}

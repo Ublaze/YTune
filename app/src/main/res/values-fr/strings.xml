@@ -194,4 +194,19 @@
     <string name="featured_on">Featured on</string>
     <string name="fans_might_also_like">Fans might also like</string>
     <string name="no_related_albums">No related albums were found</string>
+    <string name="download_and_install">Télécharger et installer</string>
+    <string name="downloading_update">Téléchargement de la mise à jour</string>
+    <string name="account">Compte</string>
+    <string name="sign_in">Se connecter</string>
+    <string name="sign_out">Se déconnecter</string>
+    <string name="not_signed_in">Non connecté</string>
+    <string name="sign_in_description">Connectez-vous à votre compte Google pour accéder à vos playlists et à votre bibliothèque YouTube Music.</string>
+    <string name="signed_in_description">Vos playlists YouTube Music sont maintenant disponibles dans l\'onglet Playlists.</string>
+    <string name="youtube_music_playlists">YouTube Music</string>
+    <string name="for_you">Pour vous</string>
+    <string name="loading_more_songs">Chargement d\'autres titres…</string>
+    <string name="liked_songs">Titres aimés</string>
+    <string name="session_expired">Votre session YouTube Music a expiré. Reconnectez-vous pour synchroniser vos playlists.</string>
+    <string name="sign_out_confirm_title">Se déconnecter ?</string>
+    <string name="sign_out_confirm_message">Vos playlists et recommandations YouTube Music ne seront plus disponibles.</string>
 </resources>

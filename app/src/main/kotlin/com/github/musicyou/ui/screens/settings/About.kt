@@ -316,25 +316,54 @@ fun About() {
 }
 
 private fun downloadApk(url: String, cacheDir: File, onProgress: (Float) -> Unit): File {
-    val file = File(cacheDir, "YTune-update.apk")
+    val destination = File(cacheDir, "YTune-update.apk")
+    val temporary = File.createTempFile("YTune-update-", ".apk", cacheDir)
     val connection = URL(url).openConnection() as HttpURLConnection
-    connection.instanceFollowRedirects = true
-    connection.connect()
 
-    val contentLength = connection.contentLength.toLong()
-    connection.inputStream.use { input ->
-        file.outputStream().use { output ->
-            val buffer = ByteArray(8192)
-            var downloaded = 0L
-            while (true) {
-                val read = input.read(buffer)
-                if (read <= 0) break
-                output.write(buffer, 0, read)
-                downloaded += read
-                if (contentLength > 0) onProgress(downloaded.toFloat() / contentLength)
+    try {
+        connection.instanceFollowRedirects = true
+        connection.connectTimeout = 15_000
+        connection.readTimeout = 30_000
+        connection.connect()
+
+        if (connection.responseCode !in 200..299) {
+            throw java.io.IOException("Server returned HTTP ${connection.responseCode}")
+        }
+
+        val contentLength = connection.getHeaderField("Content-Length")?.toLongOrNull() ?: -1L
+        var downloaded = 0L
+        connection.inputStream.use { input ->
+            temporary.outputStream().use { output ->
+                val buffer = ByteArray(8192)
+                while (true) {
+                    val read = input.read(buffer)
+                    if (read == -1) break
+                    if (read == 0) continue
+                    output.write(buffer, 0, read)
+                    downloaded += read
+                    if (contentLength > 0) {
+                        onProgress((downloaded.toFloat() / contentLength).coerceAtMost(1f))
+                    }
+                }
             }
         }
+
+        if (downloaded == 0L) throw java.io.IOException("Downloaded file is empty")
+        if (contentLength >= 0 && downloaded != contentLength) {
+            throw java.io.IOException("Download was incomplete")
+        }
+
+        if (destination.exists() && !destination.delete()) {
+            throw java.io.IOException("Could not replace the previous download")
+        }
+        if (!temporary.renameTo(destination)) {
+            throw java.io.IOException("Could not save the downloaded update")
+        }
+
+        onProgress(1f)
+        return destination
+    } finally {
+        connection.disconnect()
+        if (temporary.exists()) temporary.delete()
     }
-    onProgress(1f)
-    return file
 }

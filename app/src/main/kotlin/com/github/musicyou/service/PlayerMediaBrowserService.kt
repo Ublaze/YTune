@@ -24,6 +24,7 @@ import com.github.musicyou.models.Song
 import com.github.musicyou.models.SongWithContentLength
 import com.github.musicyou.utils.asMediaItem
 import com.github.musicyou.utils.forcePlayAtIndex
+import com.github.musicyou.utils.forcePlayFromBeginning
 import com.github.musicyou.utils.forceSeekToNext
 import com.github.musicyou.utils.forceSeekToPrevious
 import com.github.musicyou.utils.intent
@@ -243,6 +244,21 @@ class PlayerMediaBrowserService : MediaBrowserService(), ServiceConnection {
         override fun onRewind() = player.seekToDefaultPosition()
         override fun onSkipToQueueItem(id: Long) = player.seekToDefaultPosition(id.toInt())
 
+        override fun onPlayFromSearch(query: String?, extras: Bundle?) {
+            val searchQuery = query?.trim().takeUnless { it.isNullOrEmpty() } ?: return
+
+            coroutineScope.launch {
+                val mediaItems = database.search("%$searchQuery%")
+                    .first()
+                    .map(Song::asMediaItem)
+                if (mediaItems.isEmpty()) return@launch
+
+                withContext(Dispatchers.Main) {
+                    player.forcePlayFromBeginning(mediaItems)
+                }
+            }
+        }
+
         @OptIn(UnstableApi::class)
         override fun onPlayFromMediaId(mediaId: String?, extras: Bundle?) {
             val data = mediaId?.split('/') ?: return
@@ -291,10 +307,12 @@ class PlayerMediaBrowserService : MediaBrowserService(), ServiceConnection {
                     else -> emptyList()
                 }?.map(Song::asMediaItem) ?: return@launch
 
+                if (mediaItems.isEmpty()) return@launch
+
                 withContext(Dispatchers.Main) {
                     player.forcePlayAtIndex(
                         mediaItems = mediaItems,
-                        mediaItemIndex = index.coerceIn(0, mediaItems.size)
+                        mediaItemIndex = index.coerceIn(0, mediaItems.lastIndex)
                     )
                 }
             }

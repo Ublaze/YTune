@@ -190,4 +190,19 @@
     <string name="featured_on">Featured on</string>
     <string name="fans_might_also_like">Fans might also like</string>
     <string name="no_related_albums">No related albums were found</string>
+    <string name="download_and_install">Herunterladen &amp; installieren</string>
+    <string name="downloading_update">Update wird heruntergeladen</string>
+    <string name="account">Konto</string>
+    <string name="sign_in">Anmelden</string>
+    <string name="sign_out">Abmelden</string>
+    <string name="not_signed_in">Nicht angemeldet</string>
+    <string name="sign_in_description">Melden Sie sich mit Ihrem Google-Konto an, um auf Ihre YouTube Music-Playlisten und -Mediathek zuzugreifen.</string>
+    <string name="signed_in_description">Ihre YouTube Music-Playlisten sind jetzt im Tab „Playlisten“ verfügbar.</string>
+    <string name="youtube_music_playlists">YouTube Music</string>
+    <string name="for_you">Für dich</string>
+    <string name="loading_more_songs">Weitere werden geladen…</string>
+    <string name="liked_songs">Lieblingssongs</string>
+    <string name="session_expired">Ihre YouTube Music-Sitzung ist abgelaufen. Melden Sie sich erneut an, um Ihre Playlisten zu synchronisieren.</string>
+    <string name="sign_out_confirm_title">Abmelden?</string>
+    <string name="sign_out_confirm_message">Ihre YouTube Music-Playlisten und Empfehlungen sind danach nicht mehr verfügbar.</string>
 </resources>

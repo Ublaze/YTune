@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -39,6 +40,7 @@ fun GeneralSettings() {
     val playerPadding = LocalPlayerPadding.current
 
     val context = LocalContext.current
+    val resources = LocalResources.current
     var navigationLabelsVisibility by rememberPreference(
         navigationLabelsVisibilityKey,
         NavigationLabelsVisibility.Visible
@@ -60,7 +62,7 @@ fun GeneralSettings() {
             selectedValue = navigationLabelsVisibility,
             onValueSelected = { navigationLabelsVisibility = it },
             icon = Icons.Outlined.Visibility,
-            valueText = { context.getString(it.resourceId) }
+            valueText = { resources.getString(it.resourceId) }
         )
 
         EnumValueSelectorSettingsEntry(
@@ -68,7 +70,7 @@ fun GeneralSettings() {
             selectedValue = quickPicksSource,
             onValueSelected = { quickPicksSource = it },
             icon = Icons.AutoMirrored.Outlined.List,
-            valueText = { context.getString(it.resourceId) }
+            valueText = { resources.getString(it.resourceId) }
         )
 
         if (isAtLeastAndroid13) {

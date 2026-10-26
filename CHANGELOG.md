@@ -4,6 +4,18 @@ All notable changes to YTune will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.3.0] - 2026-10-26
+
+### Fixed
+- Stream connections now recover in place after stalls, timeouts, rejected requests, and expired URLs, resuming at the exact unread byte instead of stopping or restarting the song.
+- Stream resolution and recovery now sit upstream of the audio cache, with consistent range requests and no network requirement for cached playback.
+- Third-party fallback stream URLs no longer use an unrelated YouTube client user agent.
+- Playback failures no longer automatically skip otherwise playable tracks.
+- The sleep timer stops playback cleanly without terminating the app process, and player service coroutines and audio callbacks are cleaned up on destruction.
+- Android Auto no longer requests an out-of-range queue index or tries to play an empty result; voice search now plays matching local songs.
+- Update downloads now enforce timeouts and successful HTTP responses, detect incomplete files, and replace the APK only after a complete download.
+- Settings labels refresh correctly after locale changes, and all supported languages include the account, playlist, and updater strings.
+
 ## [2.2.1] - 2026-06-10
 
 ### Fixed
@@ -82,6 +94,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - In-app update download and install
 - Auto-versioning from git tags
 
+[2.3.0]: https://github.com/Ublaze/YTune/releases/tag/v2.3.0
 [2.2.1]: https://github.com/Ublaze/YTune/releases/tag/v2.2.1
 [2.2.0]: https://github.com/Ublaze/YTune/releases/tag/v2.2.0
 [2.1.0]: https://github.com/Ublaze/YTune/releases/tag/v2.1.0

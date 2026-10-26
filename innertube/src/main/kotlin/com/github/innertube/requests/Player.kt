@@ -98,6 +98,7 @@ suspend fun Innertube.player(videoId: String) = runCatchingNonCancellable {
             }.getOrNull() ?: continue
 
             val patched = okResponse.copy(
+                clientUserAgent = null,
                 streamingData = okResponse.streamingData?.copy(
                     adaptiveFormats = okResponse.streamingData.adaptiveFormats?.map { format ->
                         format.copy(

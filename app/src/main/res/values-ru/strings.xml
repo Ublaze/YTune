@@ -223,4 +223,19 @@
     <string name="featured_on">Где встречается</string>
     <string name="fans_might_also_like">Фанатам так же нравится</string>
     <string name="no_related_albums">Связанных альбомов не найдено</string>
+    <string name="download_and_install">Скачать и установить</string>
+    <string name="downloading_update">Загрузка обновления</string>
+    <string name="account">Аккаунт</string>
+    <string name="sign_in">Войти</string>
+    <string name="sign_out">Выйти</string>
+    <string name="not_signed_in">Вы не вошли</string>
+    <string name="sign_in_description">Войдите в аккаунт Google, чтобы получить доступ к плейлистам и медиатеке YouTube Music.</string>
+    <string name="signed_in_description">Ваши плейлисты YouTube Music теперь доступны на вкладке «Плейлисты».</string>
+    <string name="youtube_music_playlists">YouTube Music</string>
+    <string name="for_you">Для вас</string>
+    <string name="loading_more_songs">Загрузка других песен…</string>
+    <string name="liked_songs">Понравившиеся песни</string>
+    <string name="session_expired">Сеанс YouTube Music истёк. Войдите снова, чтобы синхронизировать плейлисты.</string>
+    <string name="sign_out_confirm_title">Выйти?</string>
+    <string name="sign_out_confirm_message">Ваши плейлисты и рекомендации YouTube Music станут недоступны.</string>
 </resources>

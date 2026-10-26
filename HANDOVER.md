@@ -21,7 +21,7 @@ ships as "YTune."
 - **Repo:** https://github.com/Ublaze/YTune
 - **Local path:** `D:\Projects\YTune`
 - **License:** GPL-3.0
-- **Latest tag / version:** `v2.1.0` (versionName/versionCode auto-derived from git tags — see §6)
+- **Working version:** `2.3.0` (versionName/versionCode auto-derived from git tags, with the `appVersion` override — see §6)
 - **Default branch:** `main`
 
 ### Tech stack
@@ -231,29 +231,34 @@ github/src/main/kotlin/com/github/api/
 
 ---
 
-## 6. Current state (as of handover)
+## 6. Current state
 
-- ✅ App builds and ships at **v2.1.0**; CHANGELOG covers through 1.8.5 (changelog is **behind**
-  the actual version — see §7).
-- ✅ Google Sign-In, playlist sync, in-app updater, Android Auto, deep links all implemented and
-  shipped in releases.
-- ✅ Signed releases via CI with a persistent keystore; in-app self-update works against GitHub
-  Releases.
-- 🌿 Two un-merged `copilot/*` branches exist; one (`review-app-good-to-have-enhancements`) was
-  never merged and may contain useful ideas to triage.
+- The released app is **v2.2.1**. The working tree contains the **2.3.0 reliability update**;
+  it is not a published release until committed, tagged, and built by CI.
+- 2.3.0 moves stream recovery below ExoPlayer into `RecoveringDataSource`. URL resolution and
+  bounded fresh-URL retries happen upstream of `CacheDataSource`, reopening at the exact unread
+  byte and preserving remaining range length. Cached playback does not contact the network.
+- Playback no longer auto-skips tracks after errors. The sleep timer stops the service without
+  killing the process; service coroutines and audio device callbacks are cleaned up.
+- Google Sign-In, playlist sync, in-app updater, Android Auto, and deep links remain implemented.
+  The updater now rejects HTTP-error, empty, and incomplete downloads.
+- Signed releases use CI with a persistent keystore; in-app self-update works against GitHub
+  Releases. Signing credentials now come from repository secrets.
+- `origin/copilot/review-app-good-to-have-enhancements` is an old spike based on pre-2.2 code;
+  do not merge it wholesale. Its playback changes would undo the newer recovery work.
 
 ---
 
 ## 7. Known issues, risks & suggested next steps
 
 **Correctness / maintenance**
-1. **CHANGELOG is stale** — it stops at `1.8.5` but the app is `2.1.0`. There are no 2.0.0 / 2.1.0
-   entries, and the tag list jumps `1.0.0 → 1.8.3 → … → 2.1.0` (the 0.x and 1.x tags are inherited
-   from Music You). Reconcile the changelog and tag scheme before the next release.
-2. **Package name still `com.github.musicyou`** — the rebrand was cosmetic. If a clean YTune
+1. **Package name still `com.github.musicyou`** — the rebrand was cosmetic. If a clean YTune
    identity is wanted (and to avoid collisions/confusion), a package rename is a sizeable but
    worthwhile refactor. Note `applicationId` is also `com.github.musicyou` — changing it is a
    breaking change for existing installs (would require a migration / fresh install).
+2. There is no automated test suite or attached-device playback soak test. After installing 2.3.0,
+   verify several long tracks, seeking, network toggling, cached offline playback, and Android Auto
+   on real hardware before publishing.
 
 **Auth fragility (highest-risk area)**
 3. The login + cookie-capture flow depends on **undocumented YouTube/Google redirect behavior and
@@ -265,13 +270,11 @@ github/src/main/kotlin/com/github/api/
    Keystore-backed storage for the auth cookie.
 
 **Security / release hygiene**
-5. **Keystore passwords are hardcoded in the CI workflow** (`ytune2026`). Move
-   `KEYSTORE_PASSWORD` / `KEY_PASSWORD` / `KEY_ALIAS` into GitHub Actions **secrets** alongside the
-   existing `KEYSTORE_BASE64`. Treat the current keystore as potentially compromised if the repo is
-   public (but do **not** rotate it lightly — a new key breaks self-update for existing users; plan
-   a migration if rotation is needed).
-6. The in-app updater installs an APK fetched over HTTPS from GitHub with no signature/hash
-   verification beyond TLS. Acceptable for GitHub releases, but worth a checksum check.
+5. The current workflow reads signing credentials from secrets, but older public revisions exposed
+   the keystore passwords. Do not rotate the key lightly — a new key breaks self-update for existing
+   users; plan a migration if rotation is needed.
+6. The updater checks transport, status, and completeness; Android still enforces APK signatures.
+   A published SHA-256 asset and in-app verification would add protection against a bad release asset.
 
 **Legal**
 7. This streams from YouTube Music without API authorization and uses Google account cookies —
@@ -279,9 +282,8 @@ github/src/main/kotlin/com/github/api/
    mind for any distribution decisions; it cannot go on Google Play.
 
 **Good first improvements (low-risk)**
-- Persist & display the synced library playlists offline (cache `libraryPlaylists()` results).
 - Surface update-available state proactively (badge on Settings) instead of only on manual check.
-- Add 2.0.0/2.1.0 CHANGELOG entries and wire `generate_release_notes` to a curated changelog.
+- Wire `generate_release_notes` to the curated CHANGELOG.
 - Triage / merge or close the stale `copilot/*` enhancement branch.
 
 ---
